@@ -41,25 +41,28 @@ void gameLoop(server* s) {
     while (!terminate) {
         std::cout << "gamer\n";
         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-        for (const websocketpp::connection_hdl conn : connections) {
+        for (const websocketpp::connection_hdl hdl : connections) {
+            auto conn = s->get_con_from_hdl(hdl);
             s->send(conn, "gamer", websocketpp::frame::opcode::TEXT);
         }
     }
 }
 
 int main() {
-    server serv;
-    std::thread game_thread(gameLoop, &serv);;
+    server ws_server;
+    std::thread game_thread(gameLoop, &ws_server);;
 
     try {
-        serv.clear_access_channels(websocketpp::log::alevel::frame_header | websocketpp::log::alevel::frame_payload); 
+        ws_server.clear_access_channels(websocketpp::log::alevel::frame_header | websocketpp::log::alevel::frame_payload); 
 
-        serv.init_asio();
-        serv.set_message_handler(bind(&on_message, &serv, ::_1, ::_2));
-        serv.listen(9002);
-        serv.start_accept();
+        ws_server.init_asio();
+        ws_server.set_reuse_addr(true);
 
-        serv.run();
+        ws_server.set_message_handler(bind(&on_message, &ws_server, ::_1, ::_2));
+        ws_server.listen(9002);
+        ws_server.start_accept();
+
+        ws_server.run();
     } catch (websocketpp::exception const & e) {
         std::cerr << "Exception: " << e.what() << std::endl;
         terminate = true;
@@ -69,6 +72,8 @@ int main() {
     }
 
     game_thread.join();
+
+    ws_server.stop();
 
     return 0;
 }
