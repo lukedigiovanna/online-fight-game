@@ -1,0 +1,7 @@
+.vscode/
+
+client/client.js
+client/client.wasm
+
+server/dependencies/
+server/server

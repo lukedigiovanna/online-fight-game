@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>
+            Poopy Butt
+        </title>
+        <style>
+            canvas {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100vw;
+                height: 100vh;
+            }
+        </style>
+    </head>
+    <body>
+        <canvas id="canvas" width="500" height="500"></canvas>
+        <script type='text/javascript'>
+            var Module = {
+              canvas: (() => {
+                var canvas = document.getElementById('canvas');
+      
+                canvas.addEventListener("webglcontextlost", (e) => { alert('WebGL context lost. You will need to reload the page.'); e.preventDefault(); }, false);
+      
+                return canvas;
+              })(),
+            };
+        </script>
+        <script src="client.js"></script>
+    </body>
+</html>
