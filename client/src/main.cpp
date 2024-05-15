@@ -5,6 +5,7 @@
 
 #include <stdlib.h>
 #include <vector>
+#include <map>
 #include <mutex>
 #include <cstddef>
 #include <cstdlib>
@@ -22,6 +23,7 @@ struct color {
 };
 
 struct object {
+  uint32_t id;
   vec2 pos;
   vec2 scale;
   color color;
@@ -30,10 +32,19 @@ struct object {
 std::mutex stateMutex;
 #define ACQUIRE_STATE_LOCK std::lock_guard<std::mutex> lock(stateMutex)
 
-std::vector<object> objects;
+struct snapshot {
+  float timestamp;
+  std::map<uint32_t, object> objects;
+};
+
+// interpolate between these two. (linear i suppose)
+snapshot lastSnapshot;
+snapshot currentSnapshot;
 
 SDL_Window *window;
 SDL_Renderer *renderer;
+
+int currentSocket;
 
 void resizeCanvas() {
   double width, height;
@@ -53,7 +64,8 @@ EM_BOOL resizeCanvas_callback(int eventType, const EmscriptenUiEvent *uiEvent, v
 EM_BOOL onopen(int eventType, const EmscriptenWebSocketOpenEvent *websocketEvent, void *userData) {
   // when we open the socket, attempt to join the game
   EMSCRIPTEN_RESULT result;
-  result = emscripten_websocket_send_utf8_text(websocketEvent->socket, "join");
+  currentSocket = websocketEvent->socket;
+  result = emscripten_websocket_send_utf8_text(currentSocket, "join");
   if (result) {
       printf("Failed to emscripten_websocket_send_utf8_text(): %d\n", result);
   }
@@ -68,32 +80,37 @@ EM_BOOL onclose(int eventType, const EmscriptenWebSocketCloseEvent *websocketEve
   return EM_TRUE;
 }
 EM_BOOL onmessage(int eventType, const EmscriptenWebSocketMessageEvent *websocketEvent, void *userData) {
-  {
-    ACQUIRE_STATE_LOCK;
+  if (websocketEvent->isText) {
+    return EM_TRUE;
+  }
+  
+  ACQUIRE_STATE_LOCK;
 
-    if (websocketEvent->isText) {
-      return EM_TRUE;
-    }
+  // make the last the current
+  lastSnapshot.timestamp = currentSnapshot.timestamp;
+  lastSnapshot.objects = currentSnapshot.objects;
 
-    objects.clear();
-    std::byte* data = reinterpret_cast<std::byte*>(websocketEvent->data);
-    uint32_t numBytes = websocketEvent->numBytes;
-    int numObjects = *reinterpret_cast<int*>(data);
-    std::cout << numObjects << std::endl;
-    size_t pos = sizeof(numObjects);
-    for (int i = 0; i < numObjects; i++) {
-      // deserialize an object
-      object obj;
-      obj.pos.x = *reinterpret_cast<float*>(data + pos); pos += sizeof(float);
-      obj.pos.y = *reinterpret_cast<float*>(data + pos); pos += sizeof(float);
-      obj.scale.x = *reinterpret_cast<float*>(data + pos); pos += sizeof(float);
-      obj.scale.y = *reinterpret_cast<float*>(data + pos); pos += sizeof(float);
-      obj.color.r = *reinterpret_cast<float*>(data + pos); pos += sizeof(float);
-      obj.color.g = *reinterpret_cast<float*>(data + pos); pos += sizeof(float);
-      obj.color.b = *reinterpret_cast<float*>(data + pos); pos += sizeof(float);
-      std::cout << obj.pos.x << ", " << obj.pos.y << "  " << obj.scale.x << " x " << obj.scale.y << "  (" << obj.color.r << ", " << obj.color.g << ", " << obj.color.b << ")" << std::endl;
-      objects.push_back(obj);
-    }
+  float now = std::chrono::high_resolution_clock::now().time_since_epoch().count() / 1000000000.0f;
+
+  currentSnapshot.timestamp = now;
+  currentSnapshot.objects.clear();
+
+  std::byte* data = reinterpret_cast<std::byte*>(websocketEvent->data);
+  uint32_t numBytes = websocketEvent->numBytes;
+  int numObjects = *reinterpret_cast<int*>(data);
+  size_t pos = sizeof(numObjects);
+  for (int i = 0; i < numObjects; i++) {
+    // deserialize an object
+    object obj;
+    obj.id = *reinterpret_cast<uint32_t*>(data + pos); pos += sizeof(uint32_t);
+    obj.pos.x = *reinterpret_cast<float*>(data + pos); pos += sizeof(float);
+    obj.pos.y = *reinterpret_cast<float*>(data + pos); pos += sizeof(float);
+    obj.scale.x = *reinterpret_cast<float*>(data + pos); pos += sizeof(float);
+    obj.scale.y = *reinterpret_cast<float*>(data + pos); pos += sizeof(float);
+    obj.color.r = *reinterpret_cast<float*>(data + pos); pos += sizeof(float);
+    obj.color.g = *reinterpret_cast<float*>(data + pos); pos += sizeof(float);
+    obj.color.b = *reinterpret_cast<float*>(data + pos); pos += sizeof(float);
+    currentSnapshot.objects.insert(std::pair(obj.id, obj));
   }
 
   return EM_TRUE;
@@ -103,10 +120,57 @@ void gameLoop() {
   SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
   SDL_RenderClear(renderer);
 
+  SDL_Event e;
+  while (SDL_PollEvent(&e)) {
+    if (e.type == SDL_KEYDOWN) {
+      switch (e.key.keysym.sym) {
+        case SDLK_w:
+          // fire event to server
+          // emscripten_websocket_send_utf8_text(currentSocket, "join");
+          std::byte* data = static_cast<std::byte*>(malloc(1024));
+          size_t len = 0;
+          free(data);
+          // emscripten_websocket_send_binary(currentSocket, )
+      }
+    }
+  }
+
   {
     ACQUIRE_STATE_LOCK;
     
-    for (const auto& obj : objects) {
+    float now = std::chrono::high_resolution_clock::now().time_since_epoch().count() / 1000000000.0f;
+    float diff = currentSnapshot.timestamp - lastSnapshot.timestamp;
+    float p = 0;
+    if (diff > 0) {
+      p = (now - currentSnapshot.timestamp) / diff;
+    }
+
+    std::cout << lastSnapshot.timestamp << " to " << currentSnapshot.timestamp << "(" << p * 100 << "%)" << std::endl;
+
+    for (auto& [id, curr] : currentSnapshot.objects) {
+      // interpolate from their last frame
+      object obj = curr;
+
+      auto it = lastSnapshot.objects.find(id);
+      if (it != lastSnapshot.objects.end()) {
+        object& last = it->second;
+        // interpolate appropriately
+        obj = {};
+        obj.pos.x = last.pos.x + (curr.pos.x - last.pos.x) * p;
+        obj.pos.y = last.pos.y + (curr.pos.y - last.pos.y) * p;
+        // obj.scale.x = last.scale.x + (curr.scale.x - last.scale.x) * p;
+        // obj.scale.y = last.scale.y + (curr.scale.y - last.scale.y) * p;
+        // obj.pos.x = last.pos.x;
+        // obj.pos.y = last.pos.y;
+        obj.scale.x = curr.scale.x;
+        obj.scale.y = curr.scale.y;
+        obj.color.r = curr.color.r;
+        obj.color.g = curr.color.g;
+        obj.color.b = curr.color.b;
+      }
+
+      std::cout << obj.pos.x << ", " << obj.pos.y << "    " << obj.scale.x << ", " << obj.scale.y << std::endl;
+
       SDL_FRect rect = { obj.pos.x, obj.pos.y, obj.scale.x, obj.scale.y };
       SDL_SetRenderDrawColor(renderer, obj.color.r, obj.color.g, obj.color.b, 255);
       SDL_RenderFillRectF(renderer, &rect);

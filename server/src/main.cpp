@@ -31,9 +31,12 @@ std::atomic<bool> terminate = false;
 std::mutex stateMutex;
 std::vector<std::pair<connection, std::shared_ptr<object>>> connections;
 
+uint32_t lastObjectID = 0;
 std::vector<std::shared_ptr<object>> objects;
 
 server ws_server;
+
+#define ACQUIRE_STATE_LOCK std::lock_guard<std::mutex> lock(stateMutex)
 
 void on_message(server* s, websocketpp::connection_hdl hdl, server::message_ptr msg) {
     std::cout << "on_message called with hdl: " << hdl.lock().get()
@@ -45,11 +48,12 @@ void on_message(server* s, websocketpp::connection_hdl hdl, server::message_ptr 
     if (payload == "join") {
         std::shared_ptr conn = s->get_con_from_hdl(hdl);
         {
-            std::lock_guard<std::mutex> lock(stateMutex);
+            ACQUIRE_STATE_LOCK;
             std::shared_ptr<object> o = std::make_shared<object>(object{
+                ++lastObjectID,
                { math::random(0, 500), math::random(0, 500) },
                { 50, 50 },
-               { 0, 0, math::random(128, 255) } 
+               { math::random(25, 189), math::random(2, 60), math::random(128, 255) } 
             });
             objects.push_back(o);
             connections.push_back(std::pair{conn, o});
@@ -71,7 +75,7 @@ void on_close(websocketpp::connection_hdl hdl) {
     // find this handle and remove it/its obj from the set of connections
     connection m_conn = ws_server.get_con_from_hdl(hdl);
     {
-        std::lock_guard<std::mutex> lock(stateMutex);
+        ACQUIRE_STATE_LOCK;
         for (auto it = connections.begin(); it != connections.end(); it++) {
             auto conn = it->first;
             if (m_conn == conn) {
@@ -89,10 +93,9 @@ void on_close(websocketpp::connection_hdl hdl) {
 void networkLoop(server* s) {
     std::byte* buffer = static_cast<std::byte*>(malloc(10000));
     while (!terminate) {
-        std::cout << "gamer\n";
-        std::this_thread::sleep_for(std::chrono::milliseconds(250));
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
         {
-            std::lock_guard<std::mutex> lock(stateMutex);
+            ACQUIRE_STATE_LOCK;
             // serialize game state
             size_t len = 0;
             writeInt(buffer, objects.size(), len);
@@ -113,15 +116,34 @@ void networkLoop(server* s) {
 }
 
 void gameLoop() {
+    {
+        ACQUIRE_STATE_LOCK;
+        std::shared_ptr<object> o = std::make_shared<object>(object{
+            ++lastObjectID,
+            { math::random(0, 500), math::random(0, 500) },
+            { 50, 50 },
+            { math::random(25, 189), math::random(2, 60), math::random(128, 255) } 
+        });
+        objects.push_back(o);
+    }
+
+    float gameTime = 0;
+
     while (!terminate) {
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
         // update game.
         float dt = 0.05f;
+        gameTime += dt;
         {
-            std::lock_guard<std::mutex> lock(stateMutex);
-            for (const auto& obj : objects) {
-                obj->pos.x += math::random(-dt, dt);
-                obj->pos.y += math::random(-dt, dt);
+            ACQUIRE_STATE_LOCK;
+            for (auto& obj : objects) {
+                if (obj->id == 1) {
+                    obj->pos.x = 250 + std::cosf(gameTime) * 100;
+                    obj->pos.y = 250 + std::sinf(gameTime) * 100;
+                }
+                else {
+                    updateObject(*obj.get(), dt);
+                }
             }
         }
     }
