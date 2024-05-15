@@ -20,9 +20,14 @@ struct object {
     color color;
 };
 
-static void writeFloat(std::byte* dataStream, float val, size_t& bytesWritten) {
+void writeFloat(std::byte* dataStream, float val, size_t& bytesWritten) {
     *(reinterpret_cast<float*>(dataStream + bytesWritten)) = val;
     bytesWritten += sizeof(float);
+}
+
+void writeInt(std::byte* dataStream, int val, size_t& bytesWritten) {
+    *(reinterpret_cast<int*>(dataStream + bytesWritten)) = val;
+    bytesWritten += sizeof(int);
 }
 
 // returns the number of bytes written

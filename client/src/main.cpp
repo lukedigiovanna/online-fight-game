@@ -4,6 +4,33 @@
 #include <emscripten/websocket.h>
 
 #include <stdlib.h>
+#include <vector>
+#include <mutex>
+#include <cstddef>
+#include <cstdlib>
+#include <iostream>
+
+struct vec2 {
+  float x;
+  float y;
+};
+
+struct color {
+  float r;
+  float g;
+  float b;
+};
+
+struct object {
+  vec2 pos;
+  vec2 scale;
+  color color;
+};
+
+std::mutex stateMutex;
+#define ACQUIRE_STATE_LOCK std::lock_guard<std::mutex> lock(stateMutex)
+
+std::vector<object> objects;
 
 SDL_Window *window;
 SDL_Renderer *renderer;
@@ -41,8 +68,32 @@ EM_BOOL onclose(int eventType, const EmscriptenWebSocketCloseEvent *websocketEve
   return EM_TRUE;
 }
 EM_BOOL onmessage(int eventType, const EmscriptenWebSocketMessageEvent *websocketEvent, void *userData) {
-  if (websocketEvent->isText) {
-    printf("message: %s\n", websocketEvent->data);
+  {
+    ACQUIRE_STATE_LOCK;
+
+    if (websocketEvent->isText) {
+      return EM_TRUE;
+    }
+
+    objects.clear();
+    std::byte* data = reinterpret_cast<std::byte*>(websocketEvent->data);
+    uint32_t numBytes = websocketEvent->numBytes;
+    int numObjects = *reinterpret_cast<int*>(data);
+    std::cout << numObjects << std::endl;
+    size_t pos = sizeof(numObjects);
+    for (int i = 0; i < numObjects; i++) {
+      // deserialize an object
+      object obj;
+      obj.pos.x = *reinterpret_cast<float*>(data + pos); pos += sizeof(float);
+      obj.pos.y = *reinterpret_cast<float*>(data + pos); pos += sizeof(float);
+      obj.scale.x = *reinterpret_cast<float*>(data + pos); pos += sizeof(float);
+      obj.scale.y = *reinterpret_cast<float*>(data + pos); pos += sizeof(float);
+      obj.color.r = *reinterpret_cast<float*>(data + pos); pos += sizeof(float);
+      obj.color.g = *reinterpret_cast<float*>(data + pos); pos += sizeof(float);
+      obj.color.b = *reinterpret_cast<float*>(data + pos); pos += sizeof(float);
+      std::cout << obj.pos.x << ", " << obj.pos.y << "  " << obj.scale.x << " x " << obj.scale.y << "  (" << obj.color.r << ", " << obj.color.g << ", " << obj.color.b << ")" << std::endl;
+      objects.push_back(obj);
+    }
   }
 
   return EM_TRUE;
@@ -52,9 +103,15 @@ void gameLoop() {
   SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
   SDL_RenderClear(renderer);
 
-  SDL_Rect rect = { 50, 50, 100, 100 };
-  SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
-  SDL_RenderFillRect(renderer, &rect);
+  {
+    ACQUIRE_STATE_LOCK;
+    
+    for (const auto& obj : objects) {
+      SDL_FRect rect = { obj.pos.x, obj.pos.y, obj.scale.x, obj.scale.y };
+      SDL_SetRenderDrawColor(renderer, obj.color.r, obj.color.g, obj.color.b, 255);
+      SDL_RenderFillRectF(renderer, &rect);
+    }
+  }
 
   SDL_RenderPresent(renderer);
 }

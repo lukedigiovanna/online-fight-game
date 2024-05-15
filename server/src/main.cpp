@@ -95,6 +95,7 @@ void networkLoop(server* s) {
             std::lock_guard<std::mutex> lock(stateMutex);
             // serialize game state
             size_t len = 0;
+            writeInt(buffer, objects.size(), len);
             for (const auto& obj : objects) {
                 serializeObject(*obj.get(), buffer, len);
             }
