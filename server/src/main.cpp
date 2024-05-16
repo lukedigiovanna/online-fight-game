@@ -18,6 +18,8 @@
 #include "data.h"
 #include "mathutils.h"
 
+#include "../../common/opcodes.h"
+
 typedef websocketpp::server<websocketpp::config::asio> server;
 
 using websocketpp::lib::placeholders::_1;
@@ -29,7 +31,7 @@ using connection = std::shared_ptr<websocketpp::connection<websocketpp::config::
 std::atomic<bool> terminate = false;
 
 std::mutex stateMutex;
-std::vector<std::pair<connection, std::shared_ptr<object>>> connections;
+std::map<connection, std::shared_ptr<object>> connections;
 
 uint32_t lastObjectID = 0;
 std::vector<std::shared_ptr<object>> objects;
@@ -45,8 +47,15 @@ void on_message(server* s, websocketpp::connection_hdl hdl, server::message_ptr 
 
     std::string payload = msg->get_payload();
 
-    if (payload == "join") {
-        std::shared_ptr conn = s->get_con_from_hdl(hdl);
+    const char* data = payload.data();
+
+    uint8_t opcode = static_cast<uint8_t>(*data);
+
+    std::cout << "got opcode: " << opcode << std::endl;
+
+    std::shared_ptr conn = s->get_con_from_hdl(hdl);
+    if (opcode == opcodes::JOIN) {
+        std::cout << "got JOIN opcode" << std::endl;
         {
             ACQUIRE_STATE_LOCK;
             std::shared_ptr<object> o = std::make_shared<object>(object{
@@ -56,8 +65,9 @@ void on_message(server* s, websocketpp::connection_hdl hdl, server::message_ptr 
                { math::random(25, 189), math::random(2, 60), math::random(128, 255) } 
             });
             objects.push_back(o);
-            connections.push_back(std::pair{conn, o});
+            connections.insert(std::pair{conn, o});
         }
+
         try {
             s->send(hdl, "JOIN SUCCESS", websocketpp::frame::opcode::TEXT);
         } catch (const websocketpp::lib::error_code& e) {
@@ -66,6 +76,31 @@ void on_message(server* s, websocketpp::connection_hdl hdl, server::message_ptr 
         }
 
         std::cout << connections.size() << " active connections now" << std::endl;
+    }
+    else if (opcode == opcodes::SERVER_EVENT) {
+        std::cout << "got SERVER_EVENT opcode" << std::endl;
+        // find object associated with the handle
+        ACQUIRE_STATE_LOCK;
+        auto it = connections.find(conn);
+        if (it != connections.end()) {
+            uint8_t event = static_cast<uint8_t>(*(data + 1));
+            std::cout << "got server event: " << event << std::endl;
+            auto obj = it->second;
+            switch (event) {
+                case server_events::JUMP:
+                    obj->vel.y = -100;
+                    break;
+                case server_events::MOVE_LEFT:
+                    obj->pos.x -= 20;
+                    break;
+                case server_events::MOVE_RIGHT:
+                    obj->pos.x += 20;
+                    break;
+            }
+        }
+        else {
+            std::cerr << "cannot process server event for connection with no associated object" << std::endl;
+        }
     }
 }
 
@@ -76,14 +111,11 @@ void on_close(websocketpp::connection_hdl hdl) {
     connection m_conn = ws_server.get_con_from_hdl(hdl);
     {
         ACQUIRE_STATE_LOCK;
-        for (auto it = connections.begin(); it != connections.end(); it++) {
-            auto conn = it->first;
-            if (m_conn == conn) {
-                auto obj = it->second;
-                objects.erase(std::find(objects.begin(), objects.end(), obj));
-                connections.erase(it);
-                break;
-            }
+        auto it = connections.find(m_conn);
+        if (it != connections.end()) {
+            auto obj = it->second;
+            objects.erase(std::find(objects.begin(), objects.end(), obj));
+            connections.erase(it);
         }
     }
 

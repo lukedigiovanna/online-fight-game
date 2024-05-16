@@ -28,7 +28,7 @@ void updateObject(object& obj, float dt) {
     obj.pos.x += obj.vel.x * dt;
     obj.pos.y += obj.vel.y * dt;
 
-    obj.vel.y += 50 * dt;
+    obj.vel.y += 200 * dt;
 
     if (obj.pos.y + obj.scale.y > 500) {
         obj.vel.y = 0;

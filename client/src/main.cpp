@@ -11,6 +11,8 @@
 #include <cstdlib>
 #include <iostream>
 
+#include "../../common/opcodes.h"
+
 struct vec2 {
   float x;
   float y;
@@ -36,6 +38,10 @@ struct snapshot {
   float timestamp;
   std::map<uint32_t, object> objects;
 };
+
+#define BUFFER_SIZE 1024
+
+uint8_t buffer[BUFFER_SIZE];
 
 // interpolate between these two. (linear i suppose)
 snapshot lastSnapshot;
@@ -63,9 +69,9 @@ EM_BOOL resizeCanvas_callback(int eventType, const EmscriptenUiEvent *uiEvent, v
 
 EM_BOOL onopen(int eventType, const EmscriptenWebSocketOpenEvent *websocketEvent, void *userData) {
   // when we open the socket, attempt to join the game
-  EMSCRIPTEN_RESULT result;
   currentSocket = websocketEvent->socket;
-  result = emscripten_websocket_send_utf8_text(currentSocket, "join");
+  *(reinterpret_cast<uint8_t*>(buffer)) = opcodes::JOIN;
+  EMSCRIPTEN_RESULT result = emscripten_websocket_send_binary(currentSocket, buffer, 1);
   if (result) {
       printf("Failed to emscripten_websocket_send_utf8_text(): %d\n", result);
   }
@@ -125,12 +131,20 @@ void gameLoop() {
     if (e.type == SDL_KEYDOWN) {
       switch (e.key.keysym.sym) {
         case SDLK_w:
-          // fire event to server
-          // emscripten_websocket_send_utf8_text(currentSocket, "join");
-          std::byte* data = static_cast<std::byte*>(malloc(1024));
-          size_t len = 0;
-          free(data);
-          // emscripten_websocket_send_binary(currentSocket, )
+          buffer[0] = static_cast<uint8_t>(opcodes::SERVER_EVENT);
+          buffer[1] = server_events::JUMP;
+          emscripten_websocket_send_binary(currentSocket, buffer, 2);
+          break;
+        case SDLK_a:
+          buffer[0] = static_cast<uint8_t>(opcodes::SERVER_EVENT);
+          buffer[1] = server_events::MOVE_LEFT;
+          emscripten_websocket_send_binary(currentSocket, buffer, 2);
+          break;
+        case SDLK_d:
+          buffer[0] = static_cast<uint8_t>(opcodes::SERVER_EVENT);
+          buffer[1] = server_events::MOVE_RIGHT;
+          emscripten_websocket_send_binary(currentSocket, buffer, 2);
+          break;
       }
     }
   }
@@ -145,7 +159,7 @@ void gameLoop() {
       p = (now - currentSnapshot.timestamp) / diff;
     }
 
-    std::cout << lastSnapshot.timestamp << " to " << currentSnapshot.timestamp << "(" << p * 100 << "%)" << std::endl;
+    // std::cout << lastSnapshot.timestamp << " to " << currentSnapshot.timestamp << "(" << p * 100 << "%)" << std::endl;
 
     for (auto& [id, curr] : currentSnapshot.objects) {
       // interpolate from their last frame
@@ -169,7 +183,7 @@ void gameLoop() {
         obj.color.b = curr.color.b;
       }
 
-      std::cout << obj.pos.x << ", " << obj.pos.y << "    " << obj.scale.x << ", " << obj.scale.y << std::endl;
+      // std::cout << obj.pos.x << ", " << obj.pos.y << "    " << obj.scale.x << ", " << obj.scale.y << std::endl;
 
       SDL_FRect rect = { obj.pos.x, obj.pos.y, obj.scale.x, obj.scale.y };
       SDL_SetRenderDrawColor(renderer, obj.color.r, obj.color.g, obj.color.b, 255);
