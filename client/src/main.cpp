@@ -122,6 +122,12 @@ EM_BOOL onmessage(int eventType, const EmscriptenWebSocketMessageEvent *websocke
   return EM_TRUE;
 }
 
+void sendServerEvent(server_event ev) {
+  buffer[0] = static_cast<uint8_t>(opcodes::SERVER_EVENT);
+  buffer[1] = ev;
+  emscripten_websocket_send_binary(currentSocket, buffer, 2);
+}
+
 void gameLoop() {
   SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
   SDL_RenderClear(renderer);
@@ -131,20 +137,19 @@ void gameLoop() {
     if (e.type == SDL_KEYDOWN) {
       switch (e.key.keysym.sym) {
         case SDLK_w:
-          buffer[0] = static_cast<uint8_t>(opcodes::SERVER_EVENT);
-          buffer[1] = server_events::JUMP;
-          emscripten_websocket_send_binary(currentSocket, buffer, 2);
-          break;
+          sendServerEvent(server_event::JUMP); break;
         case SDLK_a:
-          buffer[0] = static_cast<uint8_t>(opcodes::SERVER_EVENT);
-          buffer[1] = server_events::MOVE_LEFT;
-          emscripten_websocket_send_binary(currentSocket, buffer, 2);
-          break;
+          sendServerEvent(server_event::START_MOVE_LEFT); break;
         case SDLK_d:
-          buffer[0] = static_cast<uint8_t>(opcodes::SERVER_EVENT);
-          buffer[1] = server_events::MOVE_RIGHT;
-          emscripten_websocket_send_binary(currentSocket, buffer, 2);
-          break;
+          sendServerEvent(server_event::START_MOVE_RIGHT); break;
+      }
+    }
+    else if (e.type == SDL_KEYUP) {
+      switch (e.key.keysym.sym) {
+        case SDLK_a:
+          sendServerEvent(server_event::END_MOVE_LEFT); break;
+        case SDLK_d:
+          sendServerEvent(server_event::END_MOVE_RIGHT); break;
       }
     }
   }

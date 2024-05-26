@@ -1,2 +1,2 @@
-main: src/main.cpp
-	g++ -std=c++17 src/main.cpp -o server -I"dependencies/include"
+main: src/main.cpp src/objects.cpp
+	g++ -std=c++17 src/main.cpp src/objects.cpp -o server -I"dependencies/include"

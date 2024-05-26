@@ -7,8 +7,10 @@ enum opcodes {
     SERVER_EVENT,
 };
 
-enum server_events {
+enum server_event {
     JUMP,
-    MOVE_LEFT,
-    MOVE_RIGHT,
+    START_MOVE_LEFT,
+    START_MOVE_RIGHT,
+    END_MOVE_LEFT,
+    END_MOVE_RIGHT
 };

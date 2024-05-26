@@ -15,8 +15,8 @@
 #include <cstddef>
 #include <cstdlib>
 
-#include "data.h"
-#include "mathutils.h"
+#include "objects.h"
+#include "serialization.h"
 
 #include "../../common/opcodes.h"
 
@@ -31,10 +31,10 @@ using connection = std::shared_ptr<websocketpp::connection<websocketpp::config::
 std::atomic<bool> terminate = false;
 
 std::mutex stateMutex;
-std::map<connection, std::shared_ptr<object>> connections;
+std::map<connection, std::shared_ptr<Object>> connections;
 
 uint32_t lastObjectID = 0;
-std::vector<std::shared_ptr<object>> objects;
+std::vector<std::shared_ptr<Object>> objects;
 
 server ws_server;
 
@@ -58,12 +58,9 @@ void on_message(server* s, websocketpp::connection_hdl hdl, server::message_ptr 
         std::cout << "got JOIN opcode" << std::endl;
         {
             ACQUIRE_STATE_LOCK;
-            std::shared_ptr<object> o = std::make_shared<object>(object{
-                ++lastObjectID,
-               { math::random(0, 500), math::random(0, 500) },
-               { 50, 50 },
-               { math::random(25, 189), math::random(2, 60), math::random(128, 255) } 
-            });
+            std::shared_ptr<Object> o = std::make_shared<Player>(
+                math::random(0, 500), math::random(0, 500)
+            );
             objects.push_back(o);
             connections.insert(std::pair{conn, o});
         }
@@ -86,16 +83,19 @@ void on_message(server* s, websocketpp::connection_hdl hdl, server::message_ptr 
             uint8_t event = static_cast<uint8_t>(*(data + 1));
             std::cout << "got server event: " << event << std::endl;
             auto obj = it->second;
+            Player& player = dynamic_cast<Player&>(*obj.get());
             switch (event) {
-                case server_events::JUMP:
-                    obj->vel.y = -100;
+                case server_event::JUMP:
+                    player.vel.y = -100;
                     break;
-                case server_events::MOVE_LEFT:
-                    obj->pos.x -= 20;
-                    break;
-                case server_events::MOVE_RIGHT:
-                    obj->pos.x += 20;
-                    break;
+                case server_event::START_MOVE_LEFT:
+                    player.moveLeft = true; break;
+                case server_event::END_MOVE_LEFT:
+                    player.moveLeft = false; break;
+                case server_event::START_MOVE_RIGHT:
+                    player.moveRight = true; break;
+                case server_event::END_MOVE_RIGHT:
+                    player.moveRight = false; break;   
             }
         }
         else {
@@ -130,9 +130,9 @@ void networkLoop(server* s) {
             ACQUIRE_STATE_LOCK;
             // serialize game state
             size_t len = 0;
-            writeInt(buffer, objects.size(), len);
+            write<int>(buffer, objects.size(), len);
             for (const auto& obj : objects) {
-                serializeObject(*obj.get(), buffer, len);
+                obj->serialize(buffer, len);
             }
             for (const auto& [conn, _] : connections) {
                 try {
@@ -150,12 +150,7 @@ void networkLoop(server* s) {
 void gameLoop() {
     {
         ACQUIRE_STATE_LOCK;
-        std::shared_ptr<object> o = std::make_shared<object>(object{
-            ++lastObjectID,
-            { math::random(0, 500), math::random(0, 500) },
-            { 50, 50 },
-            { math::random(25, 189), math::random(2, 60), math::random(128, 255) } 
-        });
+        std::shared_ptr<Object> o = std::make_shared<Object>(0, 0);
         objects.push_back(o);
     }
 
@@ -169,12 +164,14 @@ void gameLoop() {
         {
             ACQUIRE_STATE_LOCK;
             for (auto& obj : objects) {
-                if (obj->id == 1) {
+                if (obj->getID() == 1) {
                     obj->pos.x = 250 + std::cosf(gameTime) * 100;
                     obj->pos.y = 250 + std::sinf(gameTime) * 100;
                 }
                 else {
-                    updateObject(*obj.get(), dt);
+                    obj->updatePosition(dt);
+                    obj->generalUpdate(dt);
+                    obj->update(dt);
                 }
             }
         }
