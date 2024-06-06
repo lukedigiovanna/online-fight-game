@@ -1,5 +1,5 @@
 #include "objects.h"
-#include "serialization.h"
+#include "../../common/serialization.h"
 
 #include <math.h>
 
@@ -35,14 +35,14 @@ void Object::update(float dt) {
 }
 
 void Object::serialize(std::byte* dataStream, size_t& bytesWritten) {
-    write<uint32_t>(dataStream, id, bytesWritten);
-    write<float>(dataStream, pos.x, bytesWritten);
-    write<float>(dataStream, pos.y, bytesWritten);
-    write<float>(dataStream, scale.x, bytesWritten);
-    write<float>(dataStream, scale.y, bytesWritten);
-    write<float>(dataStream, color.r, bytesWritten);
-    write<float>(dataStream, color.g, bytesWritten);
-    write<float>(dataStream, color.b, bytesWritten);
+    serializer::write<uint32_t>(dataStream, id, bytesWritten);
+    serializer::write<float>(dataStream, pos.x, bytesWritten);
+    serializer::write<float>(dataStream, pos.y, bytesWritten);
+    serializer::write<float>(dataStream, scale.x, bytesWritten);
+    serializer::write<float>(dataStream, scale.y, bytesWritten);
+    serializer::write<float>(dataStream, color.r, bytesWritten);
+    serializer::write<float>(dataStream, color.g, bytesWritten);
+    serializer::write<float>(dataStream, color.b, bytesWritten);
 }
 
 // player stuff
@@ -52,7 +52,6 @@ Player::Player(float x, float y) : Object(x, y) {
 }
 
 void Player::update(float dt) {
-    this->scale.x = (sinf(this->getAge()) + 1.0f) * 50.0f;
     this->vel.x = 0;
     if (this->moveLeft) {
         this->vel.x -= 50;

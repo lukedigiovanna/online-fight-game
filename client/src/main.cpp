@@ -12,6 +12,7 @@
 #include <iostream>
 
 #include "../../common/opcodes.h"
+#include "../../common/serialization.h"
 
 struct vec2 {
   float x;
@@ -108,14 +109,14 @@ EM_BOOL onmessage(int eventType, const EmscriptenWebSocketMessageEvent *websocke
   for (int i = 0; i < numObjects; i++) {
     // deserialize an object
     object obj;
-    obj.id = *reinterpret_cast<uint32_t*>(data + pos); pos += sizeof(uint32_t);
-    obj.pos.x = *reinterpret_cast<float*>(data + pos); pos += sizeof(float);
-    obj.pos.y = *reinterpret_cast<float*>(data + pos); pos += sizeof(float);
-    obj.scale.x = *reinterpret_cast<float*>(data + pos); pos += sizeof(float);
-    obj.scale.y = *reinterpret_cast<float*>(data + pos); pos += sizeof(float);
-    obj.color.r = *reinterpret_cast<float*>(data + pos); pos += sizeof(float);
-    obj.color.g = *reinterpret_cast<float*>(data + pos); pos += sizeof(float);
-    obj.color.b = *reinterpret_cast<float*>(data + pos); pos += sizeof(float);
+    obj.id = serializer::read<size_t>(data, pos);
+    obj.pos.x = serializer::read<float>(data, pos);
+    obj.pos.y = serializer::read<float>(data, pos);
+    obj.scale.x = serializer::read<float>(data, pos);
+    obj.scale.y = serializer::read<float>(data, pos);
+    obj.color.r = serializer::read<float>(data, pos);
+    obj.color.g = serializer::read<float>(data, pos);
+    obj.color.b = serializer::read<float>(data, pos);
     currentSnapshot.objects.insert(std::pair(obj.id, obj));
   }
 
@@ -126,6 +127,36 @@ void sendServerEvent(server_event ev) {
   buffer[0] = static_cast<uint8_t>(opcodes::SERVER_EVENT);
   buffer[1] = ev;
   emscripten_websocket_send_binary(currentSocket, buffer, 2);
+}
+
+enum Screen {
+  MAIN,
+  GAME
+};
+
+Screen screen = MAIN;
+
+vec2 mousePos = {};
+
+void mainScreenLoop() {
+  SDL_SetRenderDrawColor(renderer, 50, 50, 50, 255);
+  SDL_RenderClear(renderer);
+
+  SDL_Event e;
+  while (SDL_PollEvent(&e)) {
+    if (e.type == SDL_MOUSEMOTION) {
+      std::cout << "mx, my: " << e.motion.x << ", " << e.motion.y << std::endl;
+      mousePos.x = e.motion.x;
+      mousePos.y = e.motion.y;
+    }
+  }
+
+  // draw a button
+  SDL_FRect rect = { mousePos.x - 10, mousePos.y - 10, 20, 20 };
+  SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+  SDL_RenderFillRectF(renderer, &rect);
+
+  SDL_RenderPresent(renderer);
 }
 
 void gameLoop() {
@@ -179,8 +210,6 @@ void gameLoop() {
         obj.pos.y = last.pos.y + (curr.pos.y - last.pos.y) * p;
         // obj.scale.x = last.scale.x + (curr.scale.x - last.scale.x) * p;
         // obj.scale.y = last.scale.y + (curr.scale.y - last.scale.y) * p;
-        // obj.pos.x = last.pos.x;
-        // obj.pos.y = last.pos.y;
         obj.scale.x = curr.scale.x;
         obj.scale.y = curr.scale.y;
         obj.color.r = curr.color.r;
@@ -197,6 +226,17 @@ void gameLoop() {
   }
 
   SDL_RenderPresent(renderer);
+}
+
+void mainLoop() {
+  switch (screen) {
+    case MAIN:
+      mainScreenLoop();
+      break;
+    case GAME:
+      gameLoop();
+      break;
+  }
 }
 
 int main(int argc, char* argv[]) {
@@ -224,7 +264,7 @@ int main(int argc, char* argv[]) {
 
   printf("launching game loop\n");
   emscripten_set_resize_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, EM_FALSE, resizeCanvas_callback);
-  emscripten_set_main_loop(gameLoop, 0, 1);
+  emscripten_set_main_loop(mainLoop, 0, 1);
 
   printf("end of main\n");
 

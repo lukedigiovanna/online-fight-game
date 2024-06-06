@@ -16,9 +16,9 @@
 #include <cstdlib>
 
 #include "objects.h"
-#include "serialization.h"
 
 #include "../../common/opcodes.h"
+#include "../../common/serialization.h"
 
 typedef websocketpp::server<websocketpp::config::asio> server;
 
@@ -130,7 +130,7 @@ void networkLoop(server* s) {
             ACQUIRE_STATE_LOCK;
             // serialize game state
             size_t len = 0;
-            write<int>(buffer, objects.size(), len);
+            serializer::write<int>(buffer, objects.size(), len);
             for (const auto& obj : objects) {
                 obj->serialize(buffer, len);
             }
@@ -164,15 +164,9 @@ void gameLoop() {
         {
             ACQUIRE_STATE_LOCK;
             for (auto& obj : objects) {
-                if (obj->getID() == 1) {
-                    obj->pos.x = 250 + std::cosf(gameTime) * 100;
-                    obj->pos.y = 250 + std::sinf(gameTime) * 100;
-                }
-                else {
-                    obj->updatePosition(dt);
-                    obj->generalUpdate(dt);
-                    obj->update(dt);
-                }
+                obj->updatePosition(dt);
+                obj->generalUpdate(dt);
+                obj->update(dt);
             }
         }
     }
