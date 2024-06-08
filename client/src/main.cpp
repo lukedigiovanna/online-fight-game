@@ -1,3 +1,4 @@
+#include <SDL_ttf.h>
 #include <SDL.h>
 #include <emscripten.h>
 #include <emscripten/html5.h>
@@ -13,6 +14,9 @@
 
 #include "../../common/opcodes.h"
 #include "../../common/serialization.h"
+
+#include "renderutils.h"
+#include "ui.h"
 
 struct vec2 {
   float x;
@@ -50,6 +54,8 @@ snapshot currentSnapshot;
 
 SDL_Window *window;
 SDL_Renderer *renderer;
+
+TTF_Font* font;
 
 int currentSocket;
 
@@ -138,6 +144,8 @@ Screen screen = MAIN;
 
 vec2 mousePos = {};
 
+ui::UIElement* testButton;
+
 void mainScreenLoop() {
   SDL_SetRenderDrawColor(renderer, 50, 50, 50, 255);
   SDL_RenderClear(renderer);
@@ -145,7 +153,6 @@ void mainScreenLoop() {
   SDL_Event e;
   while (SDL_PollEvent(&e)) {
     if (e.type == SDL_MOUSEMOTION) {
-      std::cout << "mx, my: " << e.motion.x << ", " << e.motion.y << std::endl;
       mousePos.x = e.motion.x;
       mousePos.y = e.motion.y;
     }
@@ -155,6 +162,13 @@ void mainScreenLoop() {
   SDL_FRect rect = { mousePos.x - 10, mousePos.y - 10, 20, 20 };
   SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
   SDL_RenderFillRectF(renderer, &rect);
+
+  renderutils::drawText(renderer, font, "abcdefghijklmnopqsrtuvwxyz", 50, 50, 50, colors::MAGENTA);
+  renderutils::drawText(renderer, font, "ABCDEFGHIJKLMNOPQRSTUVWXYZ", 50, 105, 50, colors::GREEN);
+  renderutils::drawText(renderer, font, "0123456789", 50, 160, 50, colors::BLUE);
+  renderutils::drawText(renderer, font, "!@#$%^&*()", 50, 215, 50, colors::LIGHT_GRAY);
+
+  testButton->render(renderer);
 
   SDL_RenderPresent(renderer);
 }
@@ -243,6 +257,20 @@ int main(int argc, char* argv[]) {
   SDL_Init(SDL_INIT_VIDEO);
   SDL_CreateWindowAndRenderer(512, 512, 0, &window, &renderer);
   
+  if (TTF_Init()) {
+    std::cerr << "ERROR: main: " << TTF_GetError() << std::endl;
+    return 1;
+  }
+
+  font = TTF_OpenFont("assets/Roboto-Regular.ttf", 100);
+
+  if (font == NULL) {
+    std::cerr << "ERROR: main: " << TTF_GetError() << std::endl;
+    return 1;
+  }
+
+  testButton = new ui::Button(font, "fuckyoulol");
+
   resizeCanvas();
 
   printf("setting up websocket\n");
