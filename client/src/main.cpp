@@ -143,9 +143,19 @@ Screen screen = MAIN;
 
 vec2 mousePos = {};
 
-ui::UIElement* testButton;
+ui::Button* increaseFontButton;
+ui::Button* decreaseFontButton;
 
 int fontSize = 50;
+
+void increaseFontSize() {
+  fontSize++;
+}
+
+void decreaseFontSize() {
+  fontSize--;
+  if (fontSize < 1) fontSize = 1;
+}
 
 void mainScreenLoop() {
   SDL_SetRenderDrawColor(renderer, 50, 50, 50, 255);
@@ -153,6 +163,12 @@ void mainScreenLoop() {
 
   SDL_Event e;
   while (SDL_PollEvent(&e)) {
+    if (increaseFontButton->processSDLEvent(e)) {
+      continue;
+    }
+    if (decreaseFontButton->processSDLEvent(e)) {
+      continue;
+    }
     if (e.type == SDL_MOUSEMOTION) {
       mousePos.x = e.motion.x;
       mousePos.y = e.motion.y;
@@ -176,13 +192,14 @@ void mainScreenLoop() {
 
   TTF_Font* font = Fonts::getFont("Roboto", fontSize);
 
-  renderutils::drawText(renderer, font, "abcdefghijklmnopqsrtuvwxyz", 50, 50, 50, colors::MAGENTA);
-  renderutils::drawText(renderer, font, "ABCDEFGHIJKLMNOPQRSTUVWXYZ", 50, 105, 50, colors::GREEN);
-  renderutils::drawText(renderer, font, "0123456789", 50, 160, 50, colors::BLUE);
-  renderutils::drawText(renderer, font, "!@#$%^&*()", 50, 215, 50, colors::LIGHT_GRAY);
-  renderutils::drawText(renderer, font, std::to_string(fontSize), 50, 270, 50, colors::WHITE);
+  renderutils::drawText(renderer, font, "abcdefghijklmnopqsrtuvwxyz", 50, 50, fontSize, colors::MAGENTA);
+  renderutils::drawText(renderer, font, "ABCDEFGHIJKLMNOPQRSTUVWXYZ", 50, 50 + (fontSize + 5) * 1, fontSize, colors::GREEN);
+  renderutils::drawText(renderer, font, "0123456789", 50, 50 + (fontSize + 5) * 2, fontSize, colors::BLUE);
+  renderutils::drawText(renderer, font, "!@#$%^&*()", 50, 50 + (fontSize + 5) * 3, fontSize, colors::LIGHT_GRAY);
+  renderutils::drawText(renderer, font, std::to_string(fontSize), 50, 50 + (fontSize + 5) * 4, fontSize, colors::WHITE);
 
-  testButton->render(renderer);
+  increaseFontButton->render(renderer);
+  decreaseFontButton->render(renderer);
 
   SDL_SetRenderDrawColor(renderer, 0, 255, 255, 255);
   renderutils::fillCircle(renderer, 250, 250, 50);
@@ -282,7 +299,10 @@ int main(int argc, char* argv[]) {
 
   Fonts::registerFont("Roboto", "assets/Roboto-Regular.ttf");
 
-  testButton = new ui::Button("Roboto", "fuckyoulol", 250, 100, 20);
+  increaseFontButton = new ui::Button("Roboto", "Increase", 250, 100, 20);
+  increaseFontButton->setOnClick(increaseFontSize);
+  decreaseFontButton = new ui::Button("Roboto", "Decrease", 366, 320, 30);
+  decreaseFontButton->setOnClick(decreaseFontSize);
 
   resizeCanvas();
 
