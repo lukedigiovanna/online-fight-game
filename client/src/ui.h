@@ -19,11 +19,12 @@ private:
     SDL_Color activeColor = { 230, 230, 230 };
     SDL_Color textColor = { 255, 255, 255 };
 
+    int x, y;
     std::string text;
-    TTF_Font* font;
-    int size = 18;
+    std::string fontFamily;
+    int size;
 public:
-    Button(TTF_Font* font, std::string text);
+    Button(const std::string& fontFamily, const std::string& text, int x, int y, int size);
 
     void render(SDL_Renderer* renderer) const;
 };

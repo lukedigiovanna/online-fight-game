@@ -16,6 +16,7 @@
 #include "../../common/serialization.h"
 
 #include "renderutils.h"
+#include "font.h"
 #include "ui.h"
 
 struct vec2 {
@@ -54,8 +55,6 @@ snapshot currentSnapshot;
 
 SDL_Window *window;
 SDL_Renderer *renderer;
-
-TTF_Font* font;
 
 int currentSocket;
 
@@ -146,6 +145,8 @@ vec2 mousePos = {};
 
 ui::UIElement* testButton;
 
+int fontSize = 50;
+
 void mainScreenLoop() {
   SDL_SetRenderDrawColor(renderer, 50, 50, 50, 255);
   SDL_RenderClear(renderer);
@@ -156,6 +157,16 @@ void mainScreenLoop() {
       mousePos.x = e.motion.x;
       mousePos.y = e.motion.y;
     }
+    else if (e.type == SDL_KEYDOWN) {
+      switch (e.key.keysym.sym) {
+        case SDLK_UP:
+          fontSize++; break;
+        case SDLK_DOWN:
+          fontSize--;
+          if (fontSize < 1) fontSize = 1;
+          break;
+      }
+    }
   }
 
   // draw a button
@@ -163,12 +174,19 @@ void mainScreenLoop() {
   SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
   SDL_RenderFillRectF(renderer, &rect);
 
+  TTF_Font* font = Fonts::getFont("Roboto", fontSize);
+
   renderutils::drawText(renderer, font, "abcdefghijklmnopqsrtuvwxyz", 50, 50, 50, colors::MAGENTA);
   renderutils::drawText(renderer, font, "ABCDEFGHIJKLMNOPQRSTUVWXYZ", 50, 105, 50, colors::GREEN);
   renderutils::drawText(renderer, font, "0123456789", 50, 160, 50, colors::BLUE);
   renderutils::drawText(renderer, font, "!@#$%^&*()", 50, 215, 50, colors::LIGHT_GRAY);
+  renderutils::drawText(renderer, font, std::to_string(fontSize), 50, 270, 50, colors::WHITE);
 
   testButton->render(renderer);
+
+  SDL_SetRenderDrawColor(renderer, 0, 255, 255, 255);
+  renderutils::fillCircle(renderer, 250, 250, 50);
+  renderutils::fillRoundedRect(renderer, 250, 450, 200, 50, 10);
 
   SDL_RenderPresent(renderer);
 }
@@ -262,14 +280,9 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
-  font = TTF_OpenFont("assets/Roboto-Regular.ttf", 100);
+  Fonts::registerFont("Roboto", "assets/Roboto-Regular.ttf");
 
-  if (font == NULL) {
-    std::cerr << "ERROR: main: " << TTF_GetError() << std::endl;
-    return 1;
-  }
-
-  testButton = new ui::Button(font, "fuckyoulol");
+  testButton = new ui::Button("Roboto", "fuckyoulol", 250, 100, 20);
 
   resizeCanvas();
 

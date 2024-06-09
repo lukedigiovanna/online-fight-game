@@ -7,36 +7,10 @@
 #include <iostream>
 
 namespace renderutils {
-inline int getTextWidth(TTF_Font* font, const std::string& text, int size) {
-    SDL_Surface* textSurface = TTF_RenderText_Blended(font, text.c_str(), {255, 255, 255});
-    if (textSurface == NULL) {
-        std::cerr << "ERROR: renderutils::drawText: " << SDL_GetError() << std::endl;
-        return 0;
-    }
-    int width = textSurface->w * size / textSurface->h;
-    SDL_FreeSurface(textSurface);
-    return width;
-}
-inline void drawText(SDL_Renderer* renderer, TTF_Font* font, const std::string& text, int x, int y, int size, const SDL_Color& color) {
-    SDL_Surface* textSurface = TTF_RenderText_Blended(font, text.c_str(), color);
-    if (textSurface == NULL) {
-        std::cerr << "ERROR: renderutils::drawText: " << SDL_GetError() << std::endl;
-        return;
-    }
-    SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
-    if (textTexture == NULL) {
-        std::cerr << "ERROR: renderutils::drawText: " << SDL_GetError() << std::endl;
-        return;
-    }
-    int scaledWidth = textSurface->w * size / textSurface->h;
-    SDL_Rect dstRect = { x, y, scaledWidth, size };
-    if (SDL_RenderCopy(renderer, textTexture, NULL, &dstRect)) {
-        std::cerr << "ERROR: renderutils::drawText: " << SDL_GetError() << std::endl;
-        return;
-    }
-    SDL_FreeSurface(textSurface);
-    SDL_DestroyTexture(textTexture);
-}
+    extern int getTextWidth(TTF_Font* font, const std::string& text, int size);
+    extern void drawText(SDL_Renderer* renderer, TTF_Font* font, const std::string& text, int x, int y, int size, const SDL_Color& color);
+    extern void fillCircle(SDL_Renderer* renderer, int x, int y, int r);
+    extern void fillRoundedRect(SDL_Renderer* renderer, int x, int y, int w, int h, int r);
 }
 
 namespace colors {
