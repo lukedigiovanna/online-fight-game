@@ -18,6 +18,7 @@
 #include "renderutils.h"
 #include "font.h"
 #include "ui.h"
+#include "utils.h"
 
 struct vec2 {
   float x;
@@ -102,7 +103,7 @@ EM_BOOL onmessage(int eventType, const EmscriptenWebSocketMessageEvent *websocke
   lastSnapshot.timestamp = currentSnapshot.timestamp;
   lastSnapshot.objects = currentSnapshot.objects;
 
-  float now = std::chrono::high_resolution_clock::now().time_since_epoch().count() / 1000000000.0f;
+  float now = utils::getTime();
 
   currentSnapshot.timestamp = now;
   currentSnapshot.objects.clear();
@@ -145,6 +146,7 @@ vec2 mousePos = {};
 
 ui::Button* increaseFontButton;
 ui::Button* decreaseFontButton;
+ui::TextInput* textInput;
 
 int fontSize = 50;
 
@@ -169,6 +171,9 @@ void mainScreenLoop() {
     if (decreaseFontButton->processSDLEvent(e)) {
       continue;
     }
+    if (textInput->processSDLEvent(e)) {
+      continue;
+    }
     if (e.type == SDL_MOUSEMOTION) {
       mousePos.x = e.motion.x;
       mousePos.y = e.motion.y;
@@ -190,16 +195,16 @@ void mainScreenLoop() {
   SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
   SDL_RenderFillRectF(renderer, &rect);
 
-  TTF_Font* font = Fonts::getFont("Roboto", fontSize);
 
-  renderutils::drawText(renderer, font, "abcdefghijklmnopqsrtuvwxyz", 50, 50, fontSize, colors::MAGENTA);
-  renderutils::drawText(renderer, font, "ABCDEFGHIJKLMNOPQRSTUVWXYZ", 50, 50 + (fontSize + 5) * 1, fontSize, colors::GREEN);
-  renderutils::drawText(renderer, font, "0123456789", 50, 50 + (fontSize + 5) * 2, fontSize, colors::BLUE);
-  renderutils::drawText(renderer, font, "!@#$%^&*()", 50, 50 + (fontSize + 5) * 3, fontSize, colors::LIGHT_GRAY);
-  renderutils::drawText(renderer, font, std::to_string(fontSize), 50, 50 + (fontSize + 5) * 4, fontSize, colors::WHITE);
+  renderutils::drawText(renderer, "Roboto", "abcdefghijklmnopqsrtuvwxyz", 50, 50, fontSize, colors::MAGENTA);
+  renderutils::drawText(renderer, "Roboto", "ABCDEFGHIJKLMNOPQRSTUVWXYZ", 50, 50 + (fontSize + 5) * 1, fontSize, colors::GREEN);
+  renderutils::drawText(renderer, "Roboto", "0123456789", 50, 50 + (fontSize + 5) * 2, fontSize, colors::BLUE);
+  renderutils::drawText(renderer, "Roboto", "!@#$%^&*()", 50, 50 + (fontSize + 5) * 3, fontSize, colors::LIGHT_GRAY);
+  renderutils::drawText(renderer, "Roboto", std::to_string(fontSize), 50, 50 + (fontSize + 5) * 4, fontSize, colors::WHITE);
 
   increaseFontButton->render(renderer);
   decreaseFontButton->render(renderer);
+  textInput->render(renderer);
 
   SDL_SetRenderDrawColor(renderer, 0, 255, 255, 255);
   renderutils::fillCircle(renderer, 250, 250, 50);
@@ -237,7 +242,7 @@ void gameLoop() {
   {
     ACQUIRE_STATE_LOCK;
     
-    float now = std::chrono::high_resolution_clock::now().time_since_epoch().count() / 1000000000.0f;
+    float now = utils::getTime();
     float diff = currentSnapshot.timestamp - lastSnapshot.timestamp;
     float p = 0;
     if (diff > 0) {
@@ -298,11 +303,14 @@ int main(int argc, char* argv[]) {
   }
 
   Fonts::registerFont("Roboto", "assets/Roboto-Regular.ttf");
+  Fonts::registerFont("Roboto-Bold", "assets/Roboto-Bold.ttf");
 
-  increaseFontButton = new ui::Button("Roboto", "Increase", 250, 100, 20);
+  increaseFontButton = new ui::Button("Roboto-Bold", "Increase", 250, 100, 20);
   increaseFontButton->setOnClick(increaseFontSize);
   decreaseFontButton = new ui::Button("Roboto", "Decrease", 366, 320, 30);
   decreaseFontButton->setOnClick(decreaseFontSize);
+
+  textInput = new ui::TextInput("Roboto", 500, 500, 300, 50);
 
   resizeCanvas();
 

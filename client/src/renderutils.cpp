@@ -1,5 +1,7 @@
 #include "renderutils.h"
 
+#include "font.h"
+
 void bresenham_helper(SDL_Renderer* renderer, int cx, int cy, int dx, int dy) {
     SDL_Point points[8] = {
         { cx + dx, cy + dy },
@@ -15,35 +17,37 @@ void bresenham_helper(SDL_Renderer* renderer, int cx, int cy, int dx, int dy) {
 }
 
 namespace renderutils {
-int getTextWidth(TTF_Font* font, const std::string& text, int size) {
+int getTextWidth(const std::string& fontFamily, const std::string& text, int size) {
+    TTF_Font* font = Fonts::getFont(fontFamily, size);
     SDL_Surface* textSurface = TTF_RenderText_Blended(font, text.c_str(), {255, 255, 255});
     if (textSurface == NULL) {
         std::cerr << "ERROR: renderutils::drawText: " << SDL_GetError() << std::endl;
         return 0;
     }
-    int width = textSurface->w * size / textSurface->h;
+    int width = textSurface->w;
     SDL_FreeSurface(textSurface);
     return width;
 }
-void drawText(SDL_Renderer* renderer, TTF_Font* font, const std::string& text, int x, int y, int size, const SDL_Color& color) {
+int drawText(SDL_Renderer* renderer, const std::string& fontFamily, const std::string& text, int x, int y, int size, const SDL_Color& color) {
+    TTF_Font* font = Fonts::getFont(fontFamily, size);
     SDL_Surface* textSurface = TTF_RenderText_Blended(font, text.c_str(), color);
     if (textSurface == NULL) {
         std::cerr << "ERROR: renderutils::drawText: " << SDL_GetError() << std::endl;
-        return;
+        return 0;
     }
     SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
     if (textTexture == NULL) {
         std::cerr << "ERROR: renderutils::drawText: " << SDL_GetError() << std::endl;
-        return;
+        return 0;
     }
-    int scaledWidth = textSurface->w * size / textSurface->h;
-    SDL_Rect dstRect = { x, y, scaledWidth, size };
+    SDL_Rect dstRect = { x, y, textSurface->w, textSurface->h };
     if (SDL_RenderCopy(renderer, textTexture, NULL, &dstRect)) {
         std::cerr << "ERROR: renderutils::drawText: " << SDL_GetError() << std::endl;
-        return;
+        return 0;
     }
     SDL_FreeSurface(textSurface);
     SDL_DestroyTexture(textTexture);
+    return textSurface->w;
 }
 void fillCircle(SDL_Renderer* renderer, int cx, int cy, int r) {
     int x = r;

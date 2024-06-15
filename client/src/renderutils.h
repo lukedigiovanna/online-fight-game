@@ -7,8 +7,8 @@
 #include <iostream>
 
 namespace renderutils {
-    extern int getTextWidth(TTF_Font* font, const std::string& text, int size);
-    extern void drawText(SDL_Renderer* renderer, TTF_Font* font, const std::string& text, int x, int y, int size, const SDL_Color& color);
+    extern int getTextWidth(const std::string& fontFamily, const std::string& text, int size);
+    extern int drawText(SDL_Renderer* renderer, const std::string& fontFamily, const std::string& text, int x, int y, int size, const SDL_Color& color);
     extern void fillCircle(SDL_Renderer* renderer, int x, int y, int r);
     extern void fillRoundedRect(SDL_Renderer* renderer, int x, int y, int w, int h, int r);
 }
