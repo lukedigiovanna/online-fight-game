@@ -1,2 +1,2 @@
 main: src/main.cpp src/renderutils.cpp src/ui.cpp
-	emcc src/main.cpp src/renderutils.cpp src/font.cpp src/ui.cpp -sUSE_SDL=2 -sUSE_SDL_TTF=2 -lwebsocket.js --embed-file assets -sALLOW_MEMORY_GROWTH -sNO_DISABLE_EXCEPTION_CATCHING -o client.js
+	emcc src/main.cpp src/renderutils.cpp src/font.cpp src/ui.cpp src/screen.cpp -sUSE_SDL=2 -sUSE_SDL_TTF=2 -lwebsocket.js --embed-file assets -sALLOW_MEMORY_GROWTH -sNO_DISABLE_EXCEPTION_CATCHING -o client.js

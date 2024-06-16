@@ -1,6 +1,9 @@
+
 #include "renderutils.h"
 
 #include "font.h"
+
+#include <sstream>
 
 void bresenham_helper(SDL_Renderer* renderer, int cx, int cy, int dx, int dy) {
     SDL_Point points[8] = {
@@ -17,6 +20,9 @@ void bresenham_helper(SDL_Renderer* renderer, int cx, int cy, int dx, int dy) {
 }
 
 namespace renderutils {
+void setRenderColor(SDL_Renderer* renderer, const SDL_Color& color) {
+    SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, 255);
+}
 int getTextWidth(const std::string& fontFamily, const std::string& text, int size) {
     TTF_Font* font = Fonts::getFont(fontFamily, size);
     SDL_Surface* textSurface = TTF_RenderText_Blended(font, text.c_str(), {255, 255, 255});
@@ -49,6 +55,17 @@ int drawText(SDL_Renderer* renderer, const std::string& fontFamily, const std::s
     SDL_DestroyTexture(textTexture);
     return textSurface->w;
 }
+int drawTextWithOutline(SDL_Renderer* renderer, const std::string& fontFamily, const std::string& text, int x, int y, int size, const SDL_Color& color, const SDL_Color& outlineColor, int outlineWidth) {
+    drawText(renderer, fontFamily, text, x - outlineWidth, y, size, outlineColor);
+    drawText(renderer, fontFamily, text, x + outlineWidth, y, size, outlineColor);
+    drawText(renderer, fontFamily, text, x, y - outlineWidth, size, outlineColor);
+    drawText(renderer, fontFamily, text, x, y + outlineWidth, size, outlineColor);
+    drawText(renderer, fontFamily, text, x - outlineWidth, y - outlineWidth, size, outlineColor);
+    drawText(renderer, fontFamily, text, x - outlineWidth, y + outlineWidth, size, outlineColor);
+    drawText(renderer, fontFamily, text, x + outlineWidth, y - outlineWidth, size, outlineColor);
+    drawText(renderer, fontFamily, text, x + outlineWidth, y + outlineWidth, size, outlineColor);
+    return drawText(renderer, fontFamily, text, x, y, size, color);
+}
 void fillCircle(SDL_Renderer* renderer, int cx, int cy, int r) {
     int x = r;
     int y = 0;
@@ -80,7 +97,36 @@ void fillRoundedRect(SDL_Renderer* renderer, int x, int y, int w, int h, int r) 
 }
 }
 
+static int getIntFromHex(const std::string& s) {
+    std::stringstream ss;
+    ss << std::hex << s;
+    int o;
+    ss >> o;
+    return o;
+}
+
 namespace colors {
+SDL_Color getColor(const std::string& hexCode) {
+    // string must be either 4 or 7 characters
+    if (hexCode.size() != 4 && hexCode.size() != 7) {
+        throw std::runtime_error("Hex code must be of the form #rgb or #rrggbb");
+    }
+
+    unsigned char r, g, b;
+    if (hexCode.size() == 4) {
+        r = getIntFromHex(hexCode.substr(1, 1));
+        g = getIntFromHex(hexCode.substr(2, 1));
+        b = getIntFromHex(hexCode.substr(3, 1));
+    }
+    else {
+        r = getIntFromHex(hexCode.substr(1, 2));
+        g = getIntFromHex(hexCode.substr(3, 2));
+        b = getIntFromHex(hexCode.substr(5, 2));
+    }
+
+    return { r, g, b };
+}
+
 const SDL_Color RED{255, 0, 0};
 const SDL_Color ORANGE{255, 128, 0};
 const SDL_Color YELLOW{255, 255, 0};

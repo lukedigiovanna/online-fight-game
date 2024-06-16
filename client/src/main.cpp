@@ -19,6 +19,7 @@
 #include "font.h"
 #include "ui.h"
 #include "utils.h"
+#include "screen.h"
 
 struct vec2 {
   float x;
@@ -135,83 +136,7 @@ void sendServerEvent(server_event ev) {
   emscripten_websocket_send_binary(currentSocket, buffer, 2);
 }
 
-enum Screen {
-  MAIN,
-  GAME
-};
-
-Screen screen = MAIN;
-
 vec2 mousePos = {};
-
-ui::Button* increaseFontButton;
-ui::Button* decreaseFontButton;
-ui::TextInput* textInput;
-
-int fontSize = 50;
-
-void increaseFontSize() {
-  fontSize++;
-}
-
-void decreaseFontSize() {
-  fontSize--;
-  if (fontSize < 1) fontSize = 1;
-}
-
-void mainScreenLoop() {
-  SDL_SetRenderDrawColor(renderer, 50, 50, 50, 255);
-  SDL_RenderClear(renderer);
-
-  SDL_Event e;
-  while (SDL_PollEvent(&e)) {
-    if (increaseFontButton->processSDLEvent(e)) {
-      continue;
-    }
-    if (decreaseFontButton->processSDLEvent(e)) {
-      continue;
-    }
-    if (textInput->processSDLEvent(e)) {
-      continue;
-    }
-    if (e.type == SDL_MOUSEMOTION) {
-      mousePos.x = e.motion.x;
-      mousePos.y = e.motion.y;
-    }
-    else if (e.type == SDL_KEYDOWN) {
-      switch (e.key.keysym.sym) {
-        case SDLK_UP:
-          fontSize++; break;
-        case SDLK_DOWN:
-          fontSize--;
-          if (fontSize < 1) fontSize = 1;
-          break;
-      }
-    }
-  }
-
-  // draw a button
-  SDL_FRect rect = { mousePos.x - 10, mousePos.y - 10, 20, 20 };
-  SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
-  SDL_RenderFillRectF(renderer, &rect);
-
-
-  renderutils::drawText(renderer, "Roboto", "abcdefghijklmnopqsrtuvwxyz", 50, 50, fontSize, colors::MAGENTA);
-  renderutils::drawText(renderer, "Roboto", "ABCDEFGHIJKLMNOPQRSTUVWXYZ", 50, 50 + (fontSize + 5) * 1, fontSize, colors::GREEN);
-  renderutils::drawText(renderer, "Roboto", "0123456789", 50, 50 + (fontSize + 5) * 2, fontSize, colors::BLUE);
-  renderutils::drawText(renderer, "Roboto", "!@#$%^&*()", 50, 50 + (fontSize + 5) * 3, fontSize, colors::LIGHT_GRAY);
-  renderutils::drawText(renderer, "Roboto", std::to_string(fontSize), 50, 50 + (fontSize + 5) * 4, fontSize, colors::WHITE);
-
-  increaseFontButton->render(renderer);
-  decreaseFontButton->render(renderer);
-  textInput->render(renderer);
-
-  SDL_SetRenderDrawColor(renderer, 0, 255, 255, 255);
-  renderutils::fillCircle(renderer, 250, 250, 50);
-  renderutils::fillRoundedRect(renderer, 250, 450, 200, 50, 10);
-
-  SDL_RenderPresent(renderer);
-}
 
 void gameLoop() {
   SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
@@ -282,15 +207,30 @@ void gameLoop() {
   SDL_RenderPresent(renderer);
 }
 
+MainScreen mainScreen;
+
 void mainLoop() {
-  switch (screen) {
-    case MAIN:
-      mainScreenLoop();
-      break;
-    case GAME:
-      gameLoop();
-      break;
+  SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+  SDL_RenderClear(renderer);
+
+  mainScreen.render(renderer);
+  mainScreen.renderUI(renderer);
+
+  SDL_Event ev;
+  while (SDL_PollEvent(&ev)) {
+    if (ev.type == SDL_MOUSEMOTION) {
+      mousePos.x = ev.motion.x;
+      mousePos.y = ev.motion.y;
+    }
+    if (mainScreen.processUIEvent(ev)) {
+      continue;
+    }
+    if (mainScreen.processEvent(ev)) {
+      continue;
+    }
   }
+
+  SDL_RenderPresent(renderer);
 }
 
 int main(int argc, char* argv[]) {
@@ -305,12 +245,11 @@ int main(int argc, char* argv[]) {
   Fonts::registerFont("Roboto", "assets/Roboto-Regular.ttf");
   Fonts::registerFont("Roboto-Bold", "assets/Roboto-Bold.ttf");
 
-  increaseFontButton = new ui::Button("Roboto-Bold", "Increase", 250, 100, 20);
-  increaseFontButton->setOnClick(increaseFontSize);
-  decreaseFontButton = new ui::Button("Roboto", "Decrease", 366, 320, 30);
-  decreaseFontButton->setOnClick(decreaseFontSize);
+  Screen::UIElementPtr elem = new ui::Button("Roboto-Bold", "Play", 300, 300, 30); 
 
-  textInput = new ui::TextInput("Roboto", 500, 500, 300, 50);
+  mainScreen.addUIElement(elem);
+
+  elem->render(renderer); // should seg fault?
 
   resizeCanvas();
 

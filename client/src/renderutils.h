@@ -7,13 +7,38 @@
 #include <iostream>
 
 namespace renderutils {
-    extern int getTextWidth(const std::string& fontFamily, const std::string& text, int size);
-    extern int drawText(SDL_Renderer* renderer, const std::string& fontFamily, const std::string& text, int x, int y, int size, const SDL_Color& color);
-    extern void fillCircle(SDL_Renderer* renderer, int x, int y, int r);
-    extern void fillRoundedRect(SDL_Renderer* renderer, int x, int y, int w, int h, int r);
+    extern void setRenderColor(
+                SDL_Renderer* renderer, 
+                const SDL_Color& color);
+    extern int getTextWidth(
+                const std::string& fontFamily, 
+                const std::string& text, 
+                int size);
+    extern int drawText(
+                SDL_Renderer* renderer, 
+                const std::string& fontFamily, 
+                const std::string& text, 
+                int x, int y, int size, 
+                const SDL_Color& color);
+    extern int drawTextWithOutline(
+                SDL_Renderer* renderer, 
+                const std::string& fontFamily, 
+                const std::string& text, 
+                int x, int y, int size, 
+                const SDL_Color& color, 
+                const SDL_Color& outlineColor, 
+                int outlineWidth);
+    extern void fillCircle(
+                SDL_Renderer* renderer, 
+                int x, int y, int r);
+    extern void fillRoundedRect(
+                SDL_Renderer* renderer, 
+                int x, int y, int w, int h, int r);
 }
 
 namespace colors {
+    extern SDL_Color getColor(const std::string& hexCode);
+
     extern const SDL_Color RED;
     extern const SDL_Color ORANGE;
     extern const SDL_Color YELLOW;

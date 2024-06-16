@@ -12,6 +12,8 @@ namespace ui {
 class UIElement {
 public:
     UIElement();
+    ~UIElement();
+
     virtual void render(SDL_Renderer* renderer) const = 0;
     // return true if should stop propagating this event
     virtual bool processSDLEvent(SDL_Event& event) = 0;
@@ -19,10 +21,11 @@ public:
 
 class Button: public UIElement {
 private:
-    SDL_Color backgroundColor = { 200, 200, 200 };
+    SDL_Color backgroundColor = colors::getColor("#32d53e");
     SDL_Color hoverColor = { 150, 150, 150 };
     SDL_Color activeColor = { 230, 230, 230 };
     SDL_Color textColor = { 255, 255, 255 };
+    SDL_Color borderColor = colors::getColor("#19a921");
 
     int x, y;
     int padding = 5;

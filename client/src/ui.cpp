@@ -8,7 +8,15 @@ ui::UIElement::UIElement() {
 
 }
 
-ui::Button::Button(const std::string& fontFamily, const std::string& text, int x, int y, int size) : fontFamily(fontFamily), text(text), x(x), y(y), size(size) {
+ui::UIElement::~UIElement() {
+
+}
+
+ui::Button::Button(const std::string& fontFamily, const std::string& text, int x, int y, int size) 
+    : fontFamily(fontFamily), 
+    text(text), 
+    x(x), y(y), 
+    size(size) {
 
 } 
 
@@ -16,19 +24,19 @@ void ui::Button::render(SDL_Renderer* renderer) const {
     if (textWidth < 0) { // calculate the textWidth once
         textWidth = renderutils::getTextWidth(fontFamily, text, size);
     }
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+    renderutils::setRenderColor(renderer, borderColor);
     renderutils::fillRoundedRect(renderer, x - padding - borderSize, y - padding - borderSize, textWidth + padding * 2 + borderSize * 2, size + padding * 2 + borderSize * 2, padding);
     if (active) {
-        SDL_SetRenderDrawColor(renderer, activeColor.r, activeColor.g, activeColor.b, 255);
+        renderutils::setRenderColor(renderer, activeColor);
     }
     else if (hover) {
-        SDL_SetRenderDrawColor(renderer, hoverColor.r, hoverColor.g, hoverColor.b, 255);
+        renderutils::setRenderColor(renderer, hoverColor);
     }
     else {
-        SDL_SetRenderDrawColor(renderer, backgroundColor.r, backgroundColor.g, backgroundColor.b, 255);
+        renderutils::setRenderColor(renderer, backgroundColor);
     }
     renderutils::fillRoundedRect(renderer, x - padding, y - padding, textWidth + padding * 2, size + padding * 2, padding);
-    renderutils::drawText(renderer, fontFamily, text, x, y, size, textColor);
+    renderutils::drawTextWithOutline(renderer, fontFamily, text, x, y, size, textColor, colors::BLACK, 1);
 }
 
 bool ui::Button::processSDLEvent(SDL_Event& event) {
