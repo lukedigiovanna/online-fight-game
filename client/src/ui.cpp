@@ -65,7 +65,9 @@ bool ui::Button::processSDLEvent(SDL_Event& event) {
     else if (event.type == SDL_MOUSEBUTTONUP) {
         if (active) {
             // button clicked!
-            onClickCallback();
+            if (onClickCallback) {
+                onClickCallback();
+            }
             active = false;
             return true;
         }
