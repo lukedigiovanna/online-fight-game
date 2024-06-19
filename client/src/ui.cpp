@@ -3,8 +3,16 @@
 #include "renderutils.h"
 #include "font.h"
 #include "utils.h"
+#include "runtimeinfo.h"
 
-ui::UIElement::UIElement() {
+ui::UIElement::UIElement(
+    float x, float y, 
+    int positionMode, 
+    AlignmentMode alignmentMode) :
+    d_x(x), d_y(y), 
+    d_positionMode(positionMode),
+    d_alignmentMode(alignmentMode) 
+{
 
 }
 
@@ -12,11 +20,36 @@ ui::UIElement::~UIElement() {
 
 }
 
-ui::Button::Button(const std::string& fontFamily, const std::string& text, int x, int y, int size) 
+int ui::UIElement::x() const {
+    if ((d_positionMode & 0b1) == ABSOLUTE_X) {
+        return (int)d_x;
+    }
+    else {
+        return (int)(d_x * RuntimeInfo::displayWidth());
+    }
+}
+
+int ui::UIElement::y() const {
+    if ((d_positionMode & 0b10) == ABSOLUTE_Y) {
+        return (int)d_y;
+    }
+    else {
+        return (int)(d_y * RuntimeInfo::displayHeight());
+    }
+}
+
+ui::Button::Button(
+        const std::string& fontFamily, 
+        const std::string& text, 
+        float x, float y, 
+        int size,
+        int positionMode,
+        AlignmentMode alignmentMode) 
     : fontFamily(fontFamily), 
     text(text), 
-    x(x), y(y), 
-    size(size) {
+    size(size),
+    UIElement(x, y, positionMode, alignmentMode)
+{
 
 } 
 
@@ -25,7 +58,20 @@ void ui::Button::render(SDL_Renderer* renderer) const {
         textWidth = renderutils::getTextWidth(fontFamily, text, size);
     }
     renderutils::setRenderColor(renderer, borderColor);
-    renderutils::fillRoundedRect(renderer, x - padding - borderSize, y - padding - borderSize, textWidth + padding * 2 + borderSize * 2, size + padding * 2 + borderSize * 2, padding);
+    int buttonWidth = textWidth + padding * 2 + borderSize * 2;
+    int alignmentOffset = alignmentMode() == ALIGN_LEFT ? 0 
+                        : alignmentMode() == ALIGN_CENTER ? buttonWidth / 2
+                        : buttonWidth;
+
+    renderutils::fillRoundedRect(
+        renderer, 
+        x() - padding - borderSize - alignmentOffset, 
+        y() - padding - borderSize, 
+        buttonWidth, 
+        size + padding * 2 + borderSize * 2, 
+        padding);
+
+    // determine what the background color should be
     if (active) {
         renderutils::setRenderColor(renderer, activeColor);
     }
@@ -35,18 +81,37 @@ void ui::Button::render(SDL_Renderer* renderer) const {
     else {
         renderutils::setRenderColor(renderer, backgroundColor);
     }
-    renderutils::fillRoundedRect(renderer, x - padding, y - padding, textWidth + padding * 2, size + padding * 2, padding);
-    renderutils::drawTextWithOutline(renderer, fontFamily, text, x, y, size, textColor, colors::BLACK, 1);
+
+    renderutils::fillRoundedRect(
+        renderer, 
+        x() - padding - alignmentOffset, 
+        y() - padding, 
+        textWidth + padding * 2, 
+        size + padding * 2, 
+        padding);
+    renderutils::drawTextWithOutline(
+        renderer, 
+        fontFamily, 
+        text, 
+        x() - alignmentOffset, y(), 
+        size, 
+        textColor, 
+        colors::BLACK, 
+        1);
 }
 
 bool ui::Button::processSDLEvent(SDL_Event& event) {
     if (event.type == SDL_MOUSEMOTION) {
         int mx = event.motion.x;
         int my = event.motion.y;
-        int l = x - padding;
-        int r = x + textWidth + padding;
-        int t = y - padding;
-        int b = y + size + padding;
+        int width = textWidth + padding * 2;
+        int alignmentOffset = alignmentMode() == ALIGN_LEFT ? 0 
+                        : alignmentMode() == ALIGN_CENTER ? width / 2
+                        : width;
+        int l = x() - padding - alignmentOffset;
+        int r = x() + textWidth + padding - alignmentOffset;
+        int t = y() - padding;
+        int b = y() + size + padding;
         if (mx >= l && mx <= r && my >= t && my <= b) {
             hover = true;
             return true;
@@ -79,36 +144,66 @@ void ui::Button::setOnClick(std::function<void()> onClick) {
     onClickCallback = onClick;
 }
 
-ui::TextInput::TextInput(const std::string& fontFamily, int x, int y, int width, int size) :
-    fontFamily(fontFamily), x(x), y(y), width(width), size(size) {
-
+ui::TextInput::TextInput(
+        const std::string& fontFamily, 
+        float x, float y, 
+        int width, 
+        int size,
+        int positionMode,
+        AlignmentMode alignmentMode) :
+    fontFamily(fontFamily), 
+    width(width), 
+    size(size), 
+    UIElement(x, y, positionMode, alignmentMode)
+{
+    
 }
 
 void ui::TextInput::render(SDL_Renderer* renderer) const {
+    // determine border color
     if (selected) {
-        SDL_SetRenderDrawColor(renderer, selectedBorderColor.r, selectedBorderColor.g, selectedBorderColor.b, 255);
+        renderutils::setRenderColor(renderer, selectedBorderColor);
     }
     else if (active) {
-        SDL_SetRenderDrawColor(renderer, activeBorderColor.r, activeBorderColor.g, activeBorderColor.b, 255);
+        renderutils::setRenderColor(renderer, activeBorderColor);
     }
     else if (hover) {
-        SDL_SetRenderDrawColor(renderer, hoverBorderColor.r, hoverBorderColor.g, hoverBorderColor.b, 255);
+        renderutils::setRenderColor(renderer, hoverBorderColor);
     }
     else {
-        SDL_SetRenderDrawColor(renderer, borderColor.r, borderColor.g, borderColor.b, 255);
+        renderutils::setRenderColor(renderer, borderColor);
     }
-    renderutils::fillRoundedRect(renderer, x - padding - borderSize, y - padding - borderSize, width + padding * 2 + borderSize * 2, size + padding * 2 + borderSize * 2, padding);
-    SDL_SetRenderDrawColor(renderer, backgroundColor.r, backgroundColor.g, backgroundColor.b, 255);
-    renderutils::fillRoundedRect(renderer, x - padding, y - padding, width + padding * 2, size + padding * 2, padding);
+
+    renderutils::fillRoundedRect(
+        renderer, 
+        x() - padding - borderSize, 
+        y() - padding - borderSize, 
+        width + padding * 2 + borderSize * 2, 
+        size + padding * 2 + borderSize * 2, 
+        padding);
+    renderutils::setRenderColor(renderer, backgroundColor);
+    renderutils::fillRoundedRect(
+        renderer, 
+        x() - padding, 
+        y() - padding, 
+        width + padding * 2, 
+        size + padding * 2, 
+        padding);
     int textWidth = 0;
     if (text.size() > 0) {
-        textWidth = renderutils::drawText(renderer, fontFamily, text, x, y, size, textColor);
+        textWidth = renderutils::drawText(
+            renderer, 
+            fontFamily, 
+            text, 
+            x(), y(), 
+            size, 
+            textColor);
     }
     if (selected) {
         float now = utils::getTime();
         float m = std::fmod(now, 0.5f);
         if (m < 0.25f) {
-            SDL_Rect rect = { x + textWidth + 3, y, 2, size };
+            SDL_Rect rect = { x() + textWidth + 3, y(), 2, size };
             SDL_SetRenderDrawColor(renderer, 30, 30, 30, 255);
             SDL_RenderFillRect(renderer, &rect);
         }
@@ -119,10 +214,10 @@ bool ui::TextInput::processSDLEvent(SDL_Event& event) {
     if (event.type == SDL_MOUSEMOTION) {
         int mx = event.motion.x;
         int my = event.motion.y;
-        int l = x - padding;
-        int r = x + width + padding;
-        int t = y - padding;
-        int b = y + size + padding;
+        int l = x() - padding;
+        int r = x() + width + padding;
+        int t = y() - padding;
+        int b = y() + size + padding;
         if (mx >= l && mx <= r && my >= t && my <= b) {
             hover = true;
             return true;

@@ -14,7 +14,7 @@
 
 #include "models.h"
 
-#define BUFFER_SIZE 1024
+#define BUFFER_SIZE 256
 
 // static class to handle the client
 

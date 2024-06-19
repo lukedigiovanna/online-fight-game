@@ -2,9 +2,6 @@
 
 #include "client.h"
 
-uint32_t Screen::WIDTH = 0;
-uint32_t Screen::HEIGHT = 0;
-
 Screen::Screen() {
 
 }

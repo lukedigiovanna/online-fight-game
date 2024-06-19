@@ -22,15 +22,10 @@
 #include "screen.h"
 #include "models.h"
 #include "client.h"
-
-// interpolate between these two. (linear i suppose)
-snapshot lastSnapshot;
-snapshot currentSnapshot;
+#include "runtimeinfo.h"
 
 SDL_Window *window;
 SDL_Renderer *renderer;
-
-int currentSocket;
 
 void resizeCanvas() {
   double width, height;
@@ -39,6 +34,7 @@ void resizeCanvas() {
 
   SDL_SetWindowSize(window, (int)width, (int)height);
   SDL_RenderSetLogicalSize(renderer, (int)width, (int)height);
+  RuntimeInfo::updateDisplayDimensions((int)width, (int)height);
 }
 
 EM_BOOL resizeCanvas_callback(int eventType, const EmscriptenUiEvent *uiEvent, void *userData) {
@@ -99,12 +95,40 @@ int main(int argc, char* argv[]) {
   Fonts::registerFont("Roboto", "assets/Roboto-Regular.ttf");
   Fonts::registerFont("Roboto-Bold", "assets/Roboto-Bold.ttf");
 
-  ui::Button* elem = new ui::Button("Roboto-Bold", "Play", 300, 300, 30); 
-  elem->setOnClick([]() {
+  ui::Button* playButton = new ui::Button(
+    "Roboto-Bold", 
+    "Play", 
+    0.5f, 100.0f, 
+    30, 
+    ui::UIElement::PositionMode::PROPORTIONAL_X | 
+    ui::UIElement::PositionMode::ABSOLUTE_Y,
+    ui::UIElement::AlignmentMode::ALIGN_LEFT); 
+  
+  playButton->setOnClick([]() {
     loadScreen(&gameScreen);
   });
 
-  mainScreen.addUIElement(elem);
+  mainScreen.addUIElement(playButton);
+
+  ui::Button* playButton2 = new ui::Button(
+    "Roboto-Bold", 
+    "Play", 
+    0.5f, 155.0f, 
+    30, 
+    ui::UIElement::PositionMode::PROPORTIONAL_X | 
+    ui::UIElement::PositionMode::ABSOLUTE_Y,
+    ui::UIElement::AlignmentMode::ALIGN_CENTER);
+  mainScreen.addUIElement(playButton2);
+
+  ui::Button* playButton3 = new ui::Button(
+    "Roboto-Bold", 
+    "Play", 
+    0.5f, 210.0f, 
+    30, 
+    ui::UIElement::PositionMode::PROPORTIONAL_X | 
+    ui::UIElement::PositionMode::ABSOLUTE_Y,
+    ui::UIElement::AlignmentMode::ALIGN_RIGHT);
+  mainScreen.addUIElement(playButton3); 
 
   loadScreen(&mainScreen);
 

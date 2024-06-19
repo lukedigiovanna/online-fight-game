@@ -8,10 +8,6 @@
 #include "ui.h"
 
 class Screen {
-// static information about a screen
-public:
-    static uint32_t WIDTH;
-    static uint32_t HEIGHT;
 public:
     typedef ui::UIElement* UIElementPtr;
     typedef std::vector<UIElementPtr> UIElementList;
