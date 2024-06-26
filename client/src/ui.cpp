@@ -57,17 +57,18 @@ void ui::Button::render(SDL_Renderer* renderer) const {
     if (textWidth < 0) { // calculate the textWidth once
         textWidth = renderutils::getTextWidth(fontFamily, text, size);
     }
-    renderutils::setRenderColor(renderer, borderColor);
+
     int buttonWidth = textWidth + padding * 2;
     int alignmentOffset = alignmentMode() == ALIGN_LEFT ? 0 
                         : alignmentMode() == ALIGN_CENTER ? buttonWidth / 2
                         : buttonWidth;
 
+    renderutils::setRenderColor(renderer, borderColor);
     renderutils::fillRoundedRect(
         renderer, 
         x() - padding - borderSize - alignmentOffset, 
         y() - padding - borderSize, 
-        buttonWidth, 
+        buttonWidth + borderSize * 2, 
         size + padding * 2 + borderSize * 2, 
         padding);
 

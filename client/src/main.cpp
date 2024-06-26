@@ -28,19 +28,19 @@ SDL_Window *window;
 SDL_Renderer *renderer;
 
 void resizeCanvas() {
-  double width, height;
-  emscripten_get_element_css_size("#canvas", &width, &height);
-  emscripten_set_canvas_element_size("#canvas", (int)width, (int)height);
-
-  SDL_SetWindowSize(window, (int)width, (int)height);
-  SDL_RenderSetLogicalSize(renderer, (int)width, (int)height);
-  RuntimeInfo::updateDisplayDimensions((int)width, (int)height);
+    double width, height;
+    emscripten_get_element_css_size("#canvas", &width, &height);
+    emscripten_set_canvas_element_size("#canvas", (int)width, (int)height);
+  
+    SDL_SetWindowSize(window, (int)width, (int)height);
+    SDL_RenderSetLogicalSize(renderer, (int)width, (int)height);
+    RuntimeInfo::updateDisplayDimensions((int)width, (int)height);
 }
 
 EM_BOOL resizeCanvas_callback(int eventType, const EmscriptenUiEvent *uiEvent, void *userData) {
-  resizeCanvas();
-
-  return EM_TRUE;
+    resizeCanvas();
+  
+    return EM_TRUE;
 }
 
 vec2 mousePos = {};
@@ -51,8 +51,8 @@ GameScreen gameScreen;
 Screen* currentScreen;
 
 void loadScreen(Screen* sc) {
-  sc->load();
-  currentScreen = sc;
+    sc->load();
+    currentScreen = sc;
 }
 
 void mainLoop() {
@@ -85,38 +85,38 @@ void mainLoop() {
 
 int main(int argc, char* argv[]) {
     SDL_Init(SDL_INIT_VIDEO);
-  SDL_CreateWindowAndRenderer(512, 512, 0, &window, &renderer);
+    SDL_CreateWindowAndRenderer(512, 512, 0, &window, &renderer);
+    
+    if (TTF_Init()) {
+        std::cerr << "ERROR: main: " << TTF_GetError() << std::endl;
+        return 1;
+    }
   
-  if (TTF_Init()) {
-    std::cerr << "ERROR: main: " << TTF_GetError() << std::endl;
-    return 1;
-  }
-
-  Fonts::registerFont("Roboto", "assets/Roboto-Regular.ttf");
-  Fonts::registerFont("Roboto-Bold", "assets/Roboto-Bold.ttf");
+    Fonts::registerFont("Roboto", "assets/Roboto-Regular.ttf");
+    Fonts::registerFont("Roboto-Bold", "assets/Roboto-Bold.ttf");
+    
+    ui::Button* playButton = new ui::Button(
+        "Roboto-Bold", 
+        "Play", 
+        0.5f, 155.0f, 
+        30, 
+        ui::UIElement::PositionMode::PROPORTIONAL_X | 
+        ui::UIElement::PositionMode::ABSOLUTE_Y,
+        ui::UIElement::AlignmentMode::ALIGN_CENTER);
   
-  ui::Button* playButton = new ui::Button(
-    "Roboto-Bold", 
-    "Play", 
-    0.5f, 155.0f, 
-    30, 
-    ui::UIElement::PositionMode::PROPORTIONAL_X | 
-    ui::UIElement::PositionMode::ABSOLUTE_Y,
-    ui::UIElement::AlignmentMode::ALIGN_CENTER);
-
-  playButton->setOnClick([]() {
-	loadScreen(&gameScreen);
-  });
-
-  mainScreen.addUIElement(playButton);
-
-  loadScreen(&mainScreen);
-
-  resizeCanvas(); 
-
-  emscripten_set_resize_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, EM_FALSE, resizeCanvas_callback);
+    playButton->setOnClick([]() {
+    	loadScreen(&gameScreen);
+    });
   
-  printf("launching game loop\n");
+    mainScreen.addUIElement(playButton);
+  
+    loadScreen(&mainScreen);
+  
+    resizeCanvas(); 
+  
+    emscripten_set_resize_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, EM_FALSE, resizeCanvas_callback);
+    
+    printf("launching game loop\n");
     emscripten_set_main_loop(mainLoop, 0, 1);
 
     return 0;

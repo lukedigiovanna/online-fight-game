@@ -1,5 +1,6 @@
 #include "screen.h"
 
+#include "runtimeinfo.h"
 #include "client.h"
 
 Screen::Screen() {
@@ -30,7 +31,17 @@ void MainScreen::load() {
 }
 
 void MainScreen::render(SDL_Renderer* renderer) const {
-    
+	renderutils::drawTextWithOutline(
+			renderer,
+			"Roboto-Bold",
+			"Fight Game",
+			RuntimeInfo::displayWidth() / 2,
+			100,
+			30,
+			colors::BLUE,
+			colors::WHITE,
+			2,
+			renderutils::Alignment::TEXT_CENTER);  
 }
 
 bool MainScreen::processEvent(SDL_Event& ev) {

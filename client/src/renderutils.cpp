@@ -33,7 +33,7 @@ int getTextWidth(const std::string& fontFamily, const std::string& text, int siz
     SDL_FreeSurface(textSurface);
     return width;
 }
-int drawText(SDL_Renderer* renderer, const std::string& fontFamily, const std::string& text, int x, int y, int size, const SDL_Color& color) {
+int drawText(SDL_Renderer* renderer, const std::string& fontFamily, const std::string& text, int x, int y, int size, const SDL_Color& color, Alignment alignment) {
     TTF_Font* font = Fonts::getFont(fontFamily, size);
     SDL_Surface* textSurface = TTF_RenderText_Blended(font, text.c_str(), color);
     if (textSurface == NULL) {
@@ -45,25 +45,40 @@ int drawText(SDL_Renderer* renderer, const std::string& fontFamily, const std::s
         std::cerr << "ERROR: renderutils::drawText: " << SDL_GetError() << std::endl;
         return 0;
     }
-    SDL_Rect dstRect = { x, y, textSurface->w, textSurface->h };
+	
+	int width = textSurface->w;
+	int height = textSurface->h;
+	SDL_Rect dstRect;
+	if (alignment == Alignment::TEXT_LEFT) {
+		dstRect = {x, y, width, height};
+	}
+	else if (alignment == Alignment::TEXT_CENTER) {
+		dstRect = {x - width / 2, y, width, height};
+	}
+	else if (alignment == Alignment::TEXT_RIGHT) {
+		dstRect = {x + width, y, width, height};
+	}
+
     if (SDL_RenderCopy(renderer, textTexture, NULL, &dstRect)) {
         std::cerr << "ERROR: renderutils::drawText: " << SDL_GetError() << std::endl;
         return 0;
     }
+
     SDL_FreeSurface(textSurface);
     SDL_DestroyTexture(textTexture);
-    return textSurface->w;
+
+    return width;
 }
-int drawTextWithOutline(SDL_Renderer* renderer, const std::string& fontFamily, const std::string& text, int x, int y, int size, const SDL_Color& color, const SDL_Color& outlineColor, int outlineWidth) {
-    drawText(renderer, fontFamily, text, x - outlineWidth, y, size, outlineColor);
-    drawText(renderer, fontFamily, text, x + outlineWidth, y, size, outlineColor);
-    drawText(renderer, fontFamily, text, x, y - outlineWidth, size, outlineColor);
-    drawText(renderer, fontFamily, text, x, y + outlineWidth, size, outlineColor);
-    drawText(renderer, fontFamily, text, x - outlineWidth, y - outlineWidth, size, outlineColor);
-    drawText(renderer, fontFamily, text, x - outlineWidth, y + outlineWidth, size, outlineColor);
-    drawText(renderer, fontFamily, text, x + outlineWidth, y - outlineWidth, size, outlineColor);
-    drawText(renderer, fontFamily, text, x + outlineWidth, y + outlineWidth, size, outlineColor);
-    return drawText(renderer, fontFamily, text, x, y, size, color);
+int drawTextWithOutline(SDL_Renderer* renderer, const std::string& fontFamily, const std::string& text, int x, int y, int size, const SDL_Color& color, const SDL_Color& outlineColor, int outlineWidth, Alignment alignment) {
+    drawText(renderer, fontFamily, text, x - outlineWidth, y, size, outlineColor, alignment);
+    drawText(renderer, fontFamily, text, x + outlineWidth, y, size, outlineColor, alignment);
+    drawText(renderer, fontFamily, text, x, y - outlineWidth, size, outlineColor, alignment);
+    drawText(renderer, fontFamily, text, x, y + outlineWidth, size, outlineColor, alignment);
+    drawText(renderer, fontFamily, text, x - outlineWidth, y - outlineWidth, size, outlineColor, alignment);
+    drawText(renderer, fontFamily, text, x - outlineWidth, y + outlineWidth, size, outlineColor, alignment);
+    drawText(renderer, fontFamily, text, x + outlineWidth, y - outlineWidth, size, outlineColor, alignment);
+    drawText(renderer, fontFamily, text, x + outlineWidth, y + outlineWidth, size, outlineColor, alignment);
+    return drawText(renderer, fontFamily, text, x, y, size, color, alignment);
 }
 void fillCircle(SDL_Renderer* renderer, int cx, int cy, int r) {
     int x = r;

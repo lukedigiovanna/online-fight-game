@@ -7,6 +7,12 @@
 #include <iostream>
 
 namespace renderutils {
+	enum Alignment {
+		TEXT_LEFT,
+		TEXT_CENTER,
+		TEXT_RIGHT
+	};
+
     extern void setRenderColor(
                 SDL_Renderer* renderer, 
                 const SDL_Color& color);
@@ -19,7 +25,8 @@ namespace renderutils {
                 const std::string& fontFamily, 
                 const std::string& text, 
                 int x, int y, int size, 
-                const SDL_Color& color);
+                const SDL_Color& color,
+				Alignment alignment=Alignment::TEXT_LEFT);
     extern int drawTextWithOutline(
                 SDL_Renderer* renderer, 
                 const std::string& fontFamily, 
@@ -27,7 +34,8 @@ namespace renderutils {
                 int x, int y, int size, 
                 const SDL_Color& color, 
                 const SDL_Color& outlineColor, 
-                int outlineWidth);
+                int outlineWidth,
+				Alignment alignment=Alignment::TEXT_LEFT);
     extern void fillCircle(
                 SDL_Renderer* renderer, 
                 int x, int y, int r);
