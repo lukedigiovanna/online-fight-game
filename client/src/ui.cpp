@@ -58,7 +58,7 @@ void ui::Button::render(SDL_Renderer* renderer) const {
         textWidth = renderutils::getTextWidth(fontFamily, text, size);
     }
     renderutils::setRenderColor(renderer, borderColor);
-    int buttonWidth = textWidth + padding * 2 + borderSize * 2;
+    int buttonWidth = textWidth + padding * 2;
     int alignmentOffset = alignmentMode() == ALIGN_LEFT ? 0 
                         : alignmentMode() == ALIGN_CENTER ? buttonWidth / 2
                         : buttonWidth;
@@ -83,11 +83,11 @@ void ui::Button::render(SDL_Renderer* renderer) const {
     }
 
     renderutils::fillRoundedRect(
-        renderer, 
-        x() - padding - alignmentOffset, 
-        y() - padding, 
-        textWidth + padding * 2, 
-        size + padding * 2, 
+        renderer,
+        x() - padding - alignmentOffset,
+        y() - padding,
+        textWidth + padding * 2,
+        size + padding * 2,
         padding);
     renderutils::drawTextWithOutline(
         renderer, 
@@ -108,8 +108,8 @@ bool ui::Button::processSDLEvent(SDL_Event& event) {
         int alignmentOffset = alignmentMode() == ALIGN_LEFT ? 0 
                         : alignmentMode() == ALIGN_CENTER ? width / 2
                         : width;
-        int l = x() - padding - alignmentOffset;
-        int r = x() + textWidth + padding - alignmentOffset;
+        int l = x() - alignmentOffset;
+        int r = x() + width - alignmentOffset;
         int t = y() - padding;
         int b = y() + size + padding;
         if (mx >= l && mx <= r && my >= t && my <= b) {

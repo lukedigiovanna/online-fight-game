@@ -1,4 +1,3 @@
-
 #include "renderutils.h"
 
 #include "font.h"

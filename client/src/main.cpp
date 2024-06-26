@@ -84,7 +84,7 @@ void mainLoop() {
 }
 
 int main(int argc, char* argv[]) {
-  SDL_Init(SDL_INIT_VIDEO);
+    SDL_Init(SDL_INIT_VIDEO);
   SDL_CreateWindowAndRenderer(512, 512, 0, &window, &renderer);
   
   if (TTF_Init()) {
@@ -94,23 +94,8 @@ int main(int argc, char* argv[]) {
 
   Fonts::registerFont("Roboto", "assets/Roboto-Regular.ttf");
   Fonts::registerFont("Roboto-Bold", "assets/Roboto-Bold.ttf");
-
-  ui::Button* playButton = new ui::Button(
-    "Roboto-Bold", 
-    "Play", 
-    0.5f, 100.0f, 
-    30, 
-    ui::UIElement::PositionMode::PROPORTIONAL_X | 
-    ui::UIElement::PositionMode::ABSOLUTE_Y,
-    ui::UIElement::AlignmentMode::ALIGN_LEFT); 
   
-  playButton->setOnClick([]() {
-    loadScreen(&gameScreen);
-  });
-
-  mainScreen.addUIElement(playButton);
-
-  ui::Button* playButton2 = new ui::Button(
+  ui::Button* playButton = new ui::Button(
     "Roboto-Bold", 
     "Play", 
     0.5f, 155.0f, 
@@ -118,25 +103,21 @@ int main(int argc, char* argv[]) {
     ui::UIElement::PositionMode::PROPORTIONAL_X | 
     ui::UIElement::PositionMode::ABSOLUTE_Y,
     ui::UIElement::AlignmentMode::ALIGN_CENTER);
-  mainScreen.addUIElement(playButton2);
 
-  ui::Button* playButton3 = new ui::Button(
-    "Roboto-Bold", 
-    "Play", 
-    0.5f, 210.0f, 
-    30, 
-    ui::UIElement::PositionMode::PROPORTIONAL_X | 
-    ui::UIElement::PositionMode::ABSOLUTE_Y,
-    ui::UIElement::AlignmentMode::ALIGN_RIGHT);
-  mainScreen.addUIElement(playButton3); 
+  playButton->setOnClick([]() {
+	loadScreen(&gameScreen);
+  });
+
+  mainScreen.addUIElement(playButton);
 
   loadScreen(&mainScreen);
 
-  resizeCanvas();
+  resizeCanvas(); 
+
   emscripten_set_resize_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, EM_FALSE, resizeCanvas_callback);
-
+  
   printf("launching game loop\n");
-  emscripten_set_main_loop(mainLoop, 0, 1);
+    emscripten_set_main_loop(mainLoop, 0, 1);
 
-  return 0;
+    return 0;
 }
