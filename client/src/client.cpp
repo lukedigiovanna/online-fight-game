@@ -69,7 +69,7 @@ void Client::gameLoop() {
     }
 }
 
-void Client::processSDLEvent(SDL_Event& ev) {
+void Client::processSDLEvent(const SDL_Event& ev) {
     if (ev.type == SDL_KEYDOWN) {
         switch (ev.key.keysym.sym) {
             case SDLK_w:

@@ -101,7 +101,7 @@ void ui::Button::render(SDL_Renderer* renderer) const {
         1);
 }
 
-bool ui::Button::processSDLEvent(SDL_Event& event) {
+bool ui::Button::processSDLEvent(const SDL_Event& event) {
     if (event.type == SDL_MOUSEMOTION) {
         int mx = event.motion.x;
         int my = event.motion.y;
@@ -211,7 +211,7 @@ void ui::TextInput::render(SDL_Renderer* renderer) const {
     }
 }
 
-bool ui::TextInput::processSDLEvent(SDL_Event& event) {
+bool ui::TextInput::processSDLEvent(const SDL_Event& event) {
     if (event.type == SDL_MOUSEMOTION) {
         int mx = event.motion.x;
         int my = event.motion.y;

@@ -3,6 +3,7 @@
 #include <SDL2/SDL.h>
 
 #include <vector>
+#include <unordered_map>
 #include <memory>
 
 #include "ui.h"
@@ -24,13 +25,14 @@ public:
 
     // Propagates UI events to the ui elements
     // Returns true and terminates if any ui element returns true on processing
-    bool processUIEvent(SDL_Event& ev);
+    bool processUIEvent(const SDL_Event& ev);
 
     virtual void load() = 0;
+    virtual void unload() = 0;
 
     virtual void render(SDL_Renderer* renderer) const = 0;
     
-    virtual bool processEvent(SDL_Event& ev) = 0;
+    virtual bool processEvent(const SDL_Event& ev) = 0;
 };
 
 inline void Screen::addUIElement(UIElementPtr element) {
@@ -43,9 +45,11 @@ public:
 
     void load();
 
+    void unload();
+
     void render(SDL_Renderer* renderer) const;
 
-    bool processEvent(SDL_Event& ev);
+    bool processEvent(const SDL_Event& ev);
 };
 
 class GameScreen: public Screen {
@@ -54,7 +58,21 @@ public:
 
     void load();
 
+    void unload();
+
     void render(SDL_Renderer* renderer) const;
 
-    bool processEvent(SDL_Event& ev);
+    bool processEvent(const SDL_Event& ev);
+};
+
+class ScreenManager {
+private:
+    static std::unordered_map<std::string, Screen*> screens;
+    static Screen* currentScreen;
+public:
+    static void loadScreen(const std::string& name);
+    static void registerScreen(const std::string& name, Screen* screen);
+    
+    static void processEvent(const SDL_Event& ev);
+    static void render(SDL_Renderer* renderer);
 };

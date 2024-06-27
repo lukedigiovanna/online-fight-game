@@ -36,7 +36,7 @@ public:
 
     static void gameLoop();
     
-    static void processSDLEvent(SDL_Event& ev);
+    static void processSDLEvent(const SDL_Event& ev);
 
     static void render(SDL_Renderer* renderer);
 

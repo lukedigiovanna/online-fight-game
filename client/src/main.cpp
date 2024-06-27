@@ -48,21 +48,11 @@ vec2 mousePos = {};
 MainScreen mainScreen;
 GameScreen gameScreen;
 
-Screen* currentScreen;
-
-void loadScreen(Screen* sc) {
-    sc->load();
-    currentScreen = sc;
-}
-
 void mainLoop() {
   SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
   SDL_RenderClear(renderer);
 
-  if (currentScreen) {
-    currentScreen->render(renderer);
-    currentScreen->renderUI(renderer);
-  }
+  ScreenManager::render(renderer);
 
   SDL_Event ev;
   while (SDL_PollEvent(&ev)) {
@@ -70,14 +60,7 @@ void mainLoop() {
       mousePos.x = ev.motion.x;
       mousePos.y = ev.motion.y;
     }
-    if (currentScreen) {
-      if (currentScreen->processUIEvent(ev)) {
-        continue;
-      }
-      if (currentScreen->processEvent(ev)) {
-        continue;
-      }
-    }
+    ScreenManager::processEvent(ev);
   }
 
   SDL_RenderPresent(renderer);
@@ -91,26 +74,14 @@ int main(int argc, char* argv[]) {
         std::cerr << "ERROR: main: " << TTF_GetError() << std::endl;
         return 1;
     }
+
+    ScreenManager::registerScreen("main", &mainScreen);
+    ScreenManager::registerScreen("game", &gameScreen);
   
     Fonts::registerFont("Roboto", "assets/Roboto-Regular.ttf");
     Fonts::registerFont("Roboto-Bold", "assets/Roboto-Bold.ttf");
-    
-    ui::Button* playButton = new ui::Button(
-        "Roboto-Bold", 
-        "Play", 
-        0.5f, 155.0f, 
-        30, 
-        ui::UIElement::PositionMode::PROPORTIONAL_X | 
-        ui::UIElement::PositionMode::ABSOLUTE_Y,
-        ui::UIElement::AlignmentMode::ALIGN_CENTER);
   
-    playButton->setOnClick([]() {
-    	loadScreen(&gameScreen);
-    });
-  
-    mainScreen.addUIElement(playButton);
-  
-    loadScreen(&mainScreen);
+    ScreenManager::loadScreen("main");
   
     resizeCanvas(); 
   

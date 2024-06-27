@@ -39,7 +39,7 @@ public:
 
     virtual void render(SDL_Renderer* renderer) const = 0;
     // return true if should stop propagating this event
-    virtual bool processSDLEvent(SDL_Event& event) = 0;
+    virtual bool processSDLEvent(const SDL_Event& event) = 0;
 
     int x() const;
     int y() const;
@@ -82,7 +82,7 @@ public:
         AlignmentMode alignmentMode = ALIGN_LEFT);
 
     void render(SDL_Renderer* renderer) const;
-    bool processSDLEvent(SDL_Event& event);
+    bool processSDLEvent(const SDL_Event& event);
 
     void setOnClick(std::function<void()> onClick);
 };
@@ -117,6 +117,6 @@ public:
         AlignmentMode alignmentMode = ALIGN_LEFT);
 
     void render(SDL_Renderer* renderer) const;
-    bool processSDLEvent(SDL_Event& event);
+    bool processSDLEvent(const SDL_Event& event);
 };
 }
